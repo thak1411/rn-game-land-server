@@ -1,0 +1,10 @@
+# executable file
+run
+main
+*.out
+
+# log file
+*.log
+
+# ETC
+.DS_Store
