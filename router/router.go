@@ -1,18 +1,14 @@
 package router
 
-import (
-	"net/http"
-
-	"github.com/thak1411/rn-game-land-server/handler"
-	"github.com/thak1411/rn-game-land-server/usecase"
-)
+import "net/http"
 
 func New() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	userUsecase := usecase.NewUser()
-	userHandler := handler.NewUser(userUsecase)
+	indexRouter := NewIndex()
+	userRouter := NewUser()
 
-	mux.HandleFunc("/user", userHandler.NewUser)
+	mux.Handle("/", indexRouter)
+	mux.Handle("/user/", http.StripPrefix("/user", userRouter))
 	return mux
 }
