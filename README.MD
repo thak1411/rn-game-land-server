@@ -4,6 +4,8 @@
 
 golang 공부용 토이 프로젝트
 
+[동시 개발중인 웹 클라이언트](https://github.com/thak1411/rn-game-land-web)
+
 ---
 
 # Documentation
@@ -11,11 +13,10 @@ golang 공부용 토이 프로젝트
 ## Architecture
 
 ~~~
--config  : Config, Option, Password, ... Private Constants
--handler : End Point Handler
--model   : Basement Business Object
--router  : Rest API Router
--usecase : Business Logic
+-config   : Config, Option, Password, ... Private Constants
+-database : DB Handler
+-handler  : End Point Handler
+-model    : Basement Business Object
+-router   : Rest API Router
+-usecase  : Business Logic
 ~~~
-
-위 아키텍처에서 DB같은 저장소를 관리하기 위한 레이어가 추가될 수도 있음 -> usecase 하위 레이어로 삽입

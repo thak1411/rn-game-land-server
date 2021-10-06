@@ -3,6 +3,7 @@ package router
 import (
 	"net/http"
 
+	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/handler"
 	"github.com/thak1411/rn-game-land-server/usecase"
 )
@@ -10,9 +11,11 @@ import (
 func NewUser() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	userUsecase := usecase.NewUser()
+	userDatabase := database.NewUser()
+	userUsecase := usecase.NewUser(userDatabase)
 	userHandler := handler.NewUser(userUsecase)
 
-	mux.HandleFunc("/test", userHandler.CreateUser)
+	mux.HandleFunc("/user", userHandler.CreateUser)
+	mux.HandleFunc("/all-user", userHandler.GetAllUser)
 	return mux
 }

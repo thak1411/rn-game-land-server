@@ -5,10 +5,10 @@ import "net/http"
 func New() *http.ServeMux {
 	mux := http.NewServeMux()
 
-	indexRouter := NewIndex()
+	chatRouter := NewChat()
 	userRouter := NewUser()
 
-	mux.Handle("/", indexRouter)
-	mux.Handle("/user/", http.StripPrefix("/user", userRouter))
+	mux.Handle("/ws/", http.StripPrefix("/ws", chatRouter))
+	mux.Handle("/api/user/", http.StripPrefix("/api/user", userRouter))
 	return mux
 }
