@@ -12,28 +12,28 @@ type UserUsecase interface {
 	GetAllUser() ([]model.User, error)
 }
 
-type UserUS struct {
+type UserUC struct {
 	db database.UserDatabase
 }
 
-func (uc *UserUS) CreateUser(user model.User) error {
+func (uc *UserUC) CreateUser(user model.User) error {
 	// Inject Salt & Hasing Password //
 	return uc.db.Create(user)
 }
 
-func (uc *UserUS) UpdateUser(user model.User) error {
+func (uc *UserUC) UpdateUser(user model.User) error {
 	// Hashing Password //
 	return uc.db.Update(user)
 }
 
-func (uc *UserUS) DeleteUser(id int) error {
+func (uc *UserUC) DeleteUser(id int) error {
 	return uc.db.Delete(id)
 }
 
-func (uc *UserUS) GetAllUser() ([]model.User, error) {
+func (uc *UserUC) GetAllUser() ([]model.User, error) {
 	return uc.db.GetAll()
 }
 
 func NewUser(db database.UserDatabase) UserUsecase {
-	return &UserUS{db}
+	return &UserUC{db}
 }
