@@ -34,7 +34,7 @@ func (uc *ClientUC) ClientReader(client *model.Client) {
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, []byte("\n"), []byte(" "), -1))
-		// client.Hub.broadcast <- message
+		client.Send <- message
 	}
 }
 
