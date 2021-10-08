@@ -12,6 +12,7 @@ type UserDatabase interface {
 	Update(model.User) error
 	Delete(int) error
 	GetAll() ([]model.User, error)
+	GetUser(string) (model.User, error)
 }
 
 type UserDB struct {
@@ -19,41 +20,50 @@ type UserDB struct {
 	nextID int
 }
 
-func (h *UserDB) Create(user model.User) error {
-	user.Id = h.nextID
-	h.users[user.Id] = user
-	h.nextID++
+func (db *UserDB) Create(user model.User) error {
+	user.Id = db.nextID
+	db.users[user.Id] = user
+	db.nextID++
 	return nil
 }
 
-func (h *UserDB) Update(user model.User) error {
-	if _, ok := h.users[user.Id]; !ok {
+func (db *UserDB) Update(user model.User) error {
+	if _, ok := db.users[user.Id]; !ok {
 		return errors.New("[UPDATE] There is No User With ID - " + fmt.Sprint(user.Id))
 	}
-	h.users[user.Id] = user
+	db.users[user.Id] = user
 	return nil
 }
 
-func (h *UserDB) Delete(id int) error {
-	if _, ok := h.users[id]; !ok {
+func (db *UserDB) Delete(id int) error {
+	if _, ok := db.users[id]; !ok {
 		return errors.New("[UPDATE] There is No User With ID - " + fmt.Sprint(id))
 	}
-	delete(h.users, id)
+	delete(db.users, id)
 	return nil
 }
 
-func (h *UserDB) GetAll() ([]model.User, error) {
-	res := make([]model.User, 0, len(h.users))
-	for _, v := range h.users {
+func (db *UserDB) GetAll() ([]model.User, error) {
+	res := make([]model.User, 0, len(db.users))
+	for _, v := range db.users {
 		res = append(res, v)
 	}
 	return res, nil
 }
 
+func (db *UserDB) GetUser(username string) (model.User, error) {
+	for _, v := range db.users {
+		if v.Username == username {
+			return v, nil
+		}
+	}
+	return model.User{Id: -1}, nil
+}
+
 func NewUser() UserDatabase {
 	return &UserDB{
 		users: map[int]model.User{
-			0: {Id: 0, Name: "admin", Username: "admin", Password: "pass"},
+			0: {Id: 0, Name: "admin", Username: "admin", Salt: "admin_salt", Password: "892738161086b314334f88d661aa6e7bab7c825c34bf55222811dad46cdbf724"}, // pass: admin
 		},
 		nextID: 1,
 	}

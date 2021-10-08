@@ -1,8 +1,10 @@
 package usecase
 
 import (
+	"github.com/google/uuid"
 	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/model"
+	usecase "github.com/thak1411/rn-game-land-server/usecase/util"
 )
 
 type UserUsecase interface {
@@ -10,6 +12,7 @@ type UserUsecase interface {
 	UpdateUser(model.User) error
 	DeleteUser(int) error
 	GetAllUser() ([]model.User, error)
+	CheckUser(string, string) (bool, error)
 }
 
 type UserUC struct {
@@ -18,6 +21,8 @@ type UserUC struct {
 
 func (uc *UserUC) CreateUser(user model.User) error {
 	// Inject Salt & Hasing Password //
+	user.Salt = uuid.New().String()
+	user.Password = usecase.Encrypt(user.Password, user.Salt)
 	return uc.db.Create(user)
 }
 
@@ -32,6 +37,15 @@ func (uc *UserUC) DeleteUser(id int) error {
 
 func (uc *UserUC) GetAllUser() ([]model.User, error) {
 	return uc.db.GetAll()
+}
+
+func (uc *UserUC) CheckUser(username, password string) (bool, error) {
+	user, err := uc.db.GetUser(username)
+	if err != nil {
+		return false, err
+	}
+	password = usecase.Encrypt(password, user.Salt)
+	return user.Id != -1 && user.Password == password, nil
 }
 
 func NewUser(db database.UserDatabase) UserUsecase {

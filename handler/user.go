@@ -15,7 +15,10 @@ type UserHandler struct {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		err := h.uc.CreateUser(model.User{})
+		// rnbody := r.Context().Value("rnbody")
+		err := h.uc.CreateUser(model.User{
+			// Username: rnjson.Get(rnbody, "username")
+		})
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
@@ -35,6 +38,15 @@ func (h *UserHandler) GetAllUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprintf(w, "User List: %+v", users)
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		// h.uc.CheckUser()
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
