@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/model"
-	usecase "github.com/thak1411/rn-game-land-server/usecase/util"
+	"github.com/thak1411/rn-game-land-server/util"
 )
 
 type UserUsecase interface {
@@ -22,7 +22,7 @@ type UserUC struct {
 func (uc *UserUC) CreateUser(user model.User) error {
 	// Inject Salt & Hasing Password //
 	user.Salt = uuid.New().String()
-	user.Password = usecase.Encrypt(user.Password, user.Salt)
+	user.Password = util.Encrypt(user.Password, user.Salt)
 	return uc.db.Create(user)
 }
 
@@ -44,7 +44,7 @@ func (uc *UserUC) CheckUser(username, password string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	password = usecase.Encrypt(password, user.Salt)
+	password = util.Encrypt(password, user.Salt)
 	return user.Id != -1 && user.Password == password, nil
 }
 

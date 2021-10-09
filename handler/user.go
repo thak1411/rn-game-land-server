@@ -6,6 +6,7 @@ import (
 
 	"github.com/thak1411/rn-game-land-server/model"
 	"github.com/thak1411/rn-game-land-server/usecase"
+	"github.com/thak1411/rn-game-land-server/util"
 )
 
 type UserHandler struct {
@@ -15,14 +16,13 @@ type UserHandler struct {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		// rnbody := r.Context().Value("rnbody")
-		err := h.uc.CreateUser(model.User{
-			// Username: rnjson.Get(rnbody, "username")
-		})
+		user := model.User{}
+		err := util.Bind(r.Body, &user)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+		h.uc.CreateUser(user)
 		fmt.Fprint(w, "Success Create User")
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
