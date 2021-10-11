@@ -13,10 +13,13 @@ golang 공부용 토이 프로젝트
 ## Architecture
 
 ~~~
--config   : Config, Option, Password, ... Private Constants
--database : DB Handler
--handler  : End Point Handler
--model    : Basement Business Object
--router   : Rest API Router
--usecase  : Business Logic
+-config     : Config, Option, Password, ... Private Constants
+-database   : DB Handler
+-handler    : End Point Handler
+-middleware : Preprocessor in End Point Handler
+-model      : Basement Business Object
+-router     : Rest API Router
+-temp       : Legacy Test Code
+-usecase    : Business Logic
+-util       : Util Functions
 ~~~
