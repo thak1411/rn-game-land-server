@@ -15,6 +15,8 @@ type UserDatabase interface {
 	GetAll() ([]model.User, error)
 	GetUser(string) (model.User, error)
 	GetUserId(string) (int, error)
+	GetUserById(int) (model.User, error)
+	AddFriend(int, int) error
 }
 
 type UserDB struct {
@@ -76,6 +78,28 @@ func (db *UserDB) GetUserId(username string) (int, error) {
 		}
 	}
 	return -1, nil
+}
+
+func (db *UserDB) GetUserById(id int) (model.User, error) {
+	user, ok := db.users[id]
+	if ok {
+		return user, nil
+	}
+	return model.User{Id: -1}, nil
+}
+
+func (db *UserDB) AddFriend(userId, targetId int) error {
+	user, ok := db.users[userId]
+	if !ok {
+		return errors.New("user not found")
+	}
+	_, ok = db.users[targetId]
+	if !ok {
+		return errors.New("target not found")
+	}
+	user.Friend = append(user.Friend, targetId)
+	db.users[userId] = user
+	return nil
 }
 
 func NewUser() UserDatabase {

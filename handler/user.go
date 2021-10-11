@@ -23,16 +23,16 @@ type UserForm struct {
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		var form UserForm
-		if err := util.Bind(r.Body, &form); err != nil {
+		var body UserForm
+		if err := util.BindBody(r.Body, &body); err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 		user := model.User{
 			Role:     config.RoleBasic,
-			Name:     form.Name,
-			Username: form.Username,
-			Password: form.Password,
+			Name:     body.Name,
+			Username: body.Username,
+			Password: body.Password,
 		}
 		if err := h.uc.CreateUser(user); err != nil {
 			fmt.Fprint(w, "Duplicated Username")
@@ -66,15 +66,18 @@ type LoginForm struct {
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		var form LoginForm
-		util.Bind(r.Body, &form)
-		flag, err := h.uc.CheckUser(form.Username, form.Password)
+		var body LoginForm
+		if err := util.BindBody(r.Body, &body); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		flag, err := h.uc.CheckUser(body.Username, body.Password)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		if flag {
-			user, err := h.uc.GetUser(form.Username)
+			user, err := h.uc.GetUser(body.Username)
 			if err != nil {
 				http.Error(w, "Bad Request", http.StatusBadRequest)
 				return
@@ -94,6 +97,40 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(401)
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+type FriendForm struct {
+	Target   string `json:"target"`
+	Username string `json:"username"`
+}
+
+func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var body FriendForm
+		if err := util.BindBody(r.Body, &body); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+		if token.Username != body.Username {
+			http.Error(w, "unahthorized token", http.StatusUnauthorized)
+			return
+		}
+		target, err := h.uc.GetUser(body.Target)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		fmt.Println(token.Id, "->", target.Id)
+		if err := h.uc.AddFriend(token.Id, target.Id); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}

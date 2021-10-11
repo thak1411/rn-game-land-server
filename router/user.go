@@ -21,6 +21,7 @@ func NewUser() *http.ServeMux {
 
 	mux.HandleFunc("/login", userHandler.Login)
 	mux.HandleFunc("/user", userHandler.CreateUser)
+	mux.HandleFunc("/add-friend", tokenDecode(userHandler.AddFriend))
 	mux.HandleFunc("/all-user", tokenDecode(authAdmin(userHandler.GetAllUser)))
 	return mux
 }

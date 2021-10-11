@@ -14,6 +14,8 @@ type UserUsecase interface {
 	CheckUser(string, string) (bool, error)
 	GetUserId(string) (int, error)
 	GetUser(string) (model.User, error)
+	GetUserById(int) (model.User, error)
+	AddFriend(int, int) error
 }
 
 type UserUC struct {
@@ -56,6 +58,14 @@ func (uc *UserUC) CheckUser(username, password string) (bool, error) {
 	}
 	password = util.Encrypt(password, user.Salt)
 	return user.Id != -1 && user.Password == password, nil
+}
+
+func (uc *UserUC) GetUserById(id int) (model.User, error) {
+	return uc.db.GetUserById(id)
+}
+
+func (uc *UserUC) AddFriend(userId, targetId int) error {
+	return uc.db.AddFriend(userId, targetId)
 }
 
 func NewUser(db database.UserDatabase) UserUsecase {

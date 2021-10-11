@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/thak1411/rn-game-land-server/config"
@@ -22,7 +21,6 @@ func TokenDecode(f func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 			http.Error(w, "unahthorized token", http.StatusUnauthorized)
 			return
 		}
-		fmt.Println("ABC", claims)
 		ctx := context.WithValue(r.Context(), config.Session, claims)
 		f(w, r.WithContext(ctx))
 	}
@@ -36,7 +34,6 @@ func AuthAdmin(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWri
 			return
 		}
 		claims, ok := iClaims.(model.AuthTokenClaims)
-		fmt.Println("CBA", iClaims, claims)
 		if ok && claims.Role == config.RoleAdmin {
 			f(w, r)
 			return
