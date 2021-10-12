@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/model"
@@ -35,10 +37,24 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			Password: body.Password,
 		}
 		if err := h.uc.CreateUser(user); err != nil {
-			fmt.Fprint(w, "Duplicated Username")
+			ret := model.RnHttpStatus{
+				Status:  909,
+				Message: "Duplicated Username",
+			}
+			if err := json.NewEncoder(w).Encode(ret); err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
 			return
 		}
-		fmt.Fprint(w, "Success Create User")
+		ret := model.RnHttpStatus{
+			Status:  910,
+			Message: "Success Create User",
+		}
+		if err := json.NewEncoder(w).Encode(ret); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
@@ -102,6 +118,27 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+		var _ = token
+		// TODO: expire user's token //
+
+		cookie := &http.Cookie{
+			Name:     config.Session,
+			Value:    "",
+			Expires:  time.Unix(0, 0),
+			HttpOnly: true,
+		}
+		http.SetCookie(w, cookie)
+		w.WriteHeader(200)
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 type FriendForm struct {
 	Target   string `json:"target"`
 	Username string `json:"username"`
@@ -126,9 +163,45 @@ func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		fmt.Println(token.Id, "->", target.Id)
 		if err := h.uc.AddFriend(token.Id, target.Id); err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+type RetUserProfile struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		var user string
+		target, ok := r.URL.Query()["target"]
+		if !ok || len(target) < 1 {
+			user = token.Username
+		} else {
+			user = target[0]
+		}
+		ret, err := h.uc.GetUser(user)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		userProfile := RetUserProfile{
+			Id:       ret.Id,
+			Username: ret.Username,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(userProfile); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 	default:

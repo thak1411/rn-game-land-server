@@ -20,8 +20,10 @@ func NewUser() *http.ServeMux {
 	userHandler := handler.NewUser(userUsecase)
 
 	mux.HandleFunc("/login", userHandler.Login)
+	mux.HandleFunc("/logout", tokenDecode(userHandler.Logout))
 	mux.HandleFunc("/user", userHandler.CreateUser)
 	mux.HandleFunc("/add-friend", tokenDecode(userHandler.AddFriend))
 	mux.HandleFunc("/all-user", tokenDecode(authAdmin(userHandler.GetAllUser)))
+	mux.HandleFunc("/profile", tokenDecode(userHandler.GetUserProfile))
 	return mux
 }

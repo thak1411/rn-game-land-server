@@ -23,3 +23,10 @@ golang 공부용 토이 프로젝트
 -usecase    : Business Logic
 -util       : Util Functions
 ~~~
+
+## Custom Http Status Code
+
+| Code | Message |
+| ---- | ------- |
+| 909  | 중복된 이름, 회원 가입 실패 |
+| 910  | 유저 생성 성공 |
