@@ -184,11 +184,11 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		token := iToken.(model.AuthTokenClaims)
 
 		var user string
-		target, ok := r.URL.Query()["target"]
-		if !ok || len(target) < 1 {
+		username, ok := r.URL.Query()["username"]
+		if !ok || len(username) < 1 {
 			user = token.Username
 		} else {
-			user = target[0]
+			user = username[0]
 		}
 		ret, err := h.uc.GetUser(user)
 		if err != nil {
