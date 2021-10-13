@@ -8,16 +8,17 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/model"
+	"github.com/thak1411/rn-game-land-server/util"
 )
 
 type ClientUsecase interface {
-	ClientReader(*model.Client)
-	ClientWriter(*model.Client)
+	ChatClientReader(*model.ChatClient)
+	ChatClientWriter(*model.ChatClient)
 }
 
 type ClientUC struct{}
 
-func (uc *ClientUC) ClientReader(client *model.Client) {
+func (uc *ClientUC) ChatClientReader(client *model.ChatClient) {
 	defer func() {
 		client.Hub.UnRegister <- client
 		client.Conn.Close()
@@ -26,19 +27,26 @@ func (uc *ClientUC) ClientReader(client *model.Client) {
 	client.Conn.SetReadDeadline(time.Now().Add(config.PongWait))
 	client.Conn.SetPongHandler(func(string) error { client.Conn.SetReadDeadline(time.Now().Add(config.PongWait)); return nil })
 	for {
-		_, message, err := client.Conn.ReadMessage()
+		_, msg, err := client.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, []byte("\n"), []byte(" "), -1))
-		client.Send <- message
+		msg = bytes.TrimSpace(bytes.Replace(msg, []byte("\n"), []byte(" "), -1))
+		var message model.WsDefaultMessage
+		if err := util.BindJson(msg, &message); err != nil {
+			log.Printf("error: %v", err)
+			break
+		}
+		if message.Code == 90 {
+			client.Hub.Broadcast <- []byte(message.Message)
+		}
 	}
 }
 
-func (uc *ClientUC) ClientWriter(client *model.Client) {
+func (uc *ClientUC) ChatClientWriter(client *model.ChatClient) {
 	ticker := time.NewTicker(config.PingPeriod)
 	defer func() {
 		ticker.Stop()

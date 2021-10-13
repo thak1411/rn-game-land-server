@@ -16,12 +16,12 @@ func main() {
 	hub.RunHub()
 
 	clientUsecase := usecase.NewClient()
-	ws := handler.NewWs(clientUsecase)
+	client := handler.NewClient(clientUsecase)
 
 	log.Println("Server Start! Listening Port", config.Port)
 	router := router.New()
-	router.HandleFunc("/ws/connect", func(w http.ResponseWriter, r *http.Request) {
-		ws.WebSocketServe(hub.GetHub(), w, r)
+	router.HandleFunc("/ws/chat/connect", func(w http.ResponseWriter, r *http.Request) {
+		client.WSChatServe(hub.GetChatHub(), w, r)
 	})
 	http.ListenAndServe(config.Port, router)
 }

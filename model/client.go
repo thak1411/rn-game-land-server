@@ -5,8 +5,8 @@ import "github.com/gorilla/websocket"
 /**
  * Client Object
  */
-type Client struct {
-	Hub  *Hub
+type ChatClient struct {
+	Hub  *ChatHub
 	Conn *websocket.Conn
 	Send chan []byte
 }

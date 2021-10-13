@@ -13,9 +13,9 @@ func BindBody(body io.ReadCloser, obj interface{}) error {
 	return nil
 }
 
-// func BindClaims(iClaims, obj interface{}) error {
-// 	if iClaims == nil {
-// 		return errors.New("nil pointer can't binding")
-// 	}
-// 	json.Unmarshal([]byte(iClaims), obj)
-// }
+func BindJson(jsn []byte, obj interface{}) error {
+	if err := json.Unmarshal(jsn, obj); err != nil {
+		return err
+	}
+	return nil
+}

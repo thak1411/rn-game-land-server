@@ -13,8 +13,8 @@ func (h *HubHandler) RunHub() {
 	go h.uc.RunHub()
 }
 
-func (h *HubHandler) GetHub() *model.Hub {
-	return h.uc.GetHub()
+func (h *HubHandler) GetChatHub() *model.ChatHub {
+	return h.uc.GetChatHub()
 }
 
 func NewHub(uc usecase.HubUsecase) *HubHandler {

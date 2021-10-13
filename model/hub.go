@@ -4,8 +4,9 @@ package model
  * WebSocket Clients Hub
  * Managing Client & Sending Message
  */
-type Hub struct {
-	Clients    map[*Client]string
-	Register   chan *Client
-	UnRegister chan *Client
+type ChatHub struct {
+	Clients    map[*ChatClient]bool
+	Register   chan *ChatClient
+	UnRegister chan *ChatClient
+	Broadcast  chan []byte
 }
