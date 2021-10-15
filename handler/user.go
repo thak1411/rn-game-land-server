@@ -105,6 +105,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 			}
 			cookie := &http.Cookie{
 				Name:     config.Session,
+				Domain:   config.Domain,
+				Path:     "/",
+				Expires:  time.Now().Add(time.Hour * 24 * 7),
 				Value:    token,
 				HttpOnly: true,
 			}
@@ -129,6 +132,8 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		cookie := &http.Cookie{
 			Name:     config.Session,
 			Value:    "",
+			Path:     "/",
+			Domain:   config.Domain,
 			Expires:  time.Unix(0, 0),
 			HttpOnly: true,
 		}

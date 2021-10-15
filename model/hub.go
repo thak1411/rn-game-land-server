@@ -5,8 +5,9 @@ package model
  * Managing Client & Sending Message
  */
 type ChatHub struct {
-	Clients    map[*ChatClient]bool
+	Clients    map[*ChatClient]ChatUser
 	Register   chan *ChatClient
 	UnRegister chan *ChatClient
 	Broadcast  chan []byte
+	LastLog    []string
 }

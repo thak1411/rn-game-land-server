@@ -26,6 +26,37 @@ func TokenDecode(f func(http.ResponseWriter, *http.Request)) func(http.ResponseW
 	}
 }
 
+/**
+ * Same Logic With TokenDecode Function
+ *
+ * Not Abort to Next Handler At Tokenless State / Insert Guest Token
+ */
+func TokenParse(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token, err := r.Cookie(config.Session)
+		guestCtx := context.WithValue(
+			r.Context(),
+			config.Session,
+			model.AuthTokenClaims{
+				Id:       -1,
+				Role:     config.RoleGuest,
+				Username: util.GenGuestName(),
+			},
+		)
+		if err != nil {
+			f(w, r.WithContext(guestCtx))
+			return
+		}
+		tok, claims, err := util.AuthToken(token.Value)
+		if err != nil || !tok.Valid {
+			f(w, r.WithContext(guestCtx))
+			return
+		}
+		ctx := context.WithValue(r.Context(), config.Session, claims)
+		f(w, r.WithContext(ctx))
+	}
+}
+
 func AuthAdmin(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		iClaims := r.Context().Value(config.Session)

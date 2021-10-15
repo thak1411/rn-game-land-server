@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/model"
 	"github.com/thak1411/rn-game-land-server/usecase"
 )
@@ -27,11 +28,17 @@ func (h *ClientHandler) WSChatServe(hub *model.ChatHub, w http.ResponseWriter, r
 		log.Println(err)
 		return
 	}
+	iToken := r.Context().Value(config.Session)
+	token := iToken.(model.AuthTokenClaims)
 
 	client := &model.ChatClient{
 		Hub:  hub,
 		Conn: conn,
 		Send: make(chan []byte, 4096),
+		ChatUser: model.ChatUser{
+			Id:       token.Id,
+			Username: token.Username,
+		},
 	}
 	client.Hub.Register <- client
 
