@@ -219,5 +219,6 @@ func NewUser() UserDatabase {
 		},
 		nextID: 1,
 	}
+	db.BackupDB()
 	return db
 }
