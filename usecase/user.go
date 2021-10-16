@@ -17,6 +17,8 @@ type UserUsecase interface {
 	GetUser(string) (model.User, error)
 	GetUserById(int) (model.User, error)
 	AddFriend(int, int) error
+	RemoveFriend(int, int) error
+	IsMyFriend(int, int) (bool, error)
 }
 
 type UserUC struct {
@@ -71,6 +73,14 @@ func (uc *UserUC) GetUserById(id int) (model.User, error) {
 
 func (uc *UserUC) AddFriend(userId, targetId int) error {
 	return uc.db.AddFriend(userId, targetId)
+}
+
+func (uc *UserUC) RemoveFriend(userId, targetId int) error {
+	return uc.db.RemoveFriend(userId, targetId)
+}
+
+func (uc *UserUC) IsMyFriend(userId, targetId int) (bool, error) {
+	return uc.db.IsMyFriend(userId, targetId)
 }
 
 func NewUser(db database.UserDatabase) UserUsecase {

@@ -175,35 +175,6 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type FriendForm struct {
-	Name string `json:"name"`
-}
-
-func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		var body FriendForm
-		if err := util.BindBody(r.Body, &body); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-		iToken := r.Context().Value(config.Session)
-		token := iToken.(model.AuthTokenClaims)
-
-		userId, err := h.uc.GetUserIdByName(body.Name)
-		if err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-		if err := h.uc.AddFriend(token.Id, userId); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
-			return
-		}
-	default:
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-	}
-}
-
 type RetUserProfile struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
@@ -235,6 +206,116 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(userProfile); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+type FriendForm struct {
+	Name string `json:"name"`
+}
+
+func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var body FriendForm
+		if err := util.BindBody(r.Body, &body); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		if body.Name == token.Name {
+			http.Error(w, "Can't Add Self", http.StatusBadRequest)
+			return
+		}
+
+		userId, err := h.uc.GetUserIdByName(body.Name)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if err := h.uc.AddFriend(token.Id, userId); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *UserHandler) RemoveFriend(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var body FriendForm
+		if err := util.BindBody(r.Body, &body); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		if body.Name == token.Name {
+			http.Error(w, "Can't Remove Self", http.StatusBadRequest)
+			return
+		}
+
+		userId, err := h.uc.GetUserIdByName(body.Name)
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if err := h.uc.RemoveFriend(token.Id, userId); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+type MyFriendForm struct {
+	Name string `json:"name"`
+}
+
+type RetMyFriend struct {
+	Res bool `json:"res"`
+}
+
+func (h *UserHandler) IsMyFriend(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var body MyFriendForm
+		if err := util.BindBody(r.Body, &body); err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		if body.Name == token.Name {
+			http.Error(w, "Can't Check Self", http.StatusBadRequest)
+			return
+		}
+
+		id, err := h.uc.GetUserIdByName(body.Name)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		res, err := h.uc.IsMyFriend(token.Id, id)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		var ret RetMyFriend
+		ret.Res = res
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(ret); err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

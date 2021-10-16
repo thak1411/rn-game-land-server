@@ -19,5 +19,5 @@ type User struct {
 	Name     string
 	Username string
 	Password string
-	Friend   []int
+	Friend   map[int]bool
 }

@@ -18,6 +18,8 @@ type UserDatabase interface {
 	GetUserIdByName(string) (int, error)
 	GetUserById(int) (model.User, error)
 	AddFriend(int, int) error
+	RemoveFriend(int, int) error
+	IsMyFriend(int, int) (bool, error)
 }
 
 type UserDB struct {
@@ -39,6 +41,7 @@ func (db *UserDB) Create(user model.User) error {
 		return errors.New("duplicated name")
 	}
 	user.Id = db.nextID
+	user.Friend = make(map[int]bool)
 	db.users[user.Id] = user
 	db.nextID++
 	return nil
@@ -112,15 +115,49 @@ func (db *UserDB) AddFriend(userId, targetId int) error {
 	if !ok {
 		return errors.New("target not found")
 	}
-	user.Friend = append(user.Friend, targetId)
+	user.Friend[targetId] = true
 	db.users[userId] = user
 	return nil
+}
+
+func (db *UserDB) RemoveFriend(userId, targetId int) error {
+	user, ok := db.users[userId]
+	if !ok {
+		return errors.New("user not found")
+	}
+	_, ok = db.users[targetId]
+	if !ok {
+		return errors.New("target not found")
+	}
+	delete(user.Friend, targetId)
+	db.users[userId] = user
+	return nil
+}
+
+func (db *UserDB) IsMyFriend(userId, targetId int) (bool, error) {
+	user, ok := db.users[userId]
+	if !ok {
+		return false, errors.New("user not found")
+	}
+	_, ok = db.users[targetId]
+	if !ok {
+		return false, errors.New("target not found")
+	}
+	return user.Friend[targetId], nil
 }
 
 func NewUser() UserDatabase {
 	return &UserDB{
 		users: map[int]model.User{
-			0: {Id: 0, Role: config.RoleAdmin, Name: "admin", Username: "admin", Salt: "admin_salt", Password: "892738161086b314334f88d661aa6e7bab7c825c34bf55222811dad46cdbf724"}, // pass: admin
+			0: {
+				Id:       0,
+				Role:     config.RoleAdmin,
+				Name:     "admin",
+				Username: "admin",
+				Salt:     "admin_salt",
+				Password: "892738161086b314334f88d661aa6e7bab7c825c34bf55222811dad46cdbf724",
+				Friend:   make(map[int]bool),
+			}, // pass: admin
 		},
 		nextID: 1,
 	}
