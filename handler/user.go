@@ -74,6 +74,37 @@ func (h *UserHandler) GetAllUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type UserListResponse struct {
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+}
+
+func (h *UserHandler) GetUserList(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		users, err := h.uc.GetAllUser()
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		ret := []UserListResponse{}
+		for _, v := range users {
+			ret = append(ret, UserListResponse{
+				Id:       v.Id,
+				Name:     v.Name,
+				Username: v.Username,
+			})
+		}
+		if err := json.NewEncoder(w).Encode(ret); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 type LoginForm struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
