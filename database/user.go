@@ -26,12 +26,17 @@ type UserDB struct {
 }
 
 func (db *UserDB) Create(user model.User) error {
-	find, err := db.GetUser(user.Username)
-	if err != nil {
-		return err
-	}
-	if find.Id != -1 {
+	if id, err := db.GetUserId(user.Username); err != nil || id != -1 {
+		if err != nil {
+			return err
+		}
 		return errors.New("duplicated username")
+	}
+	if id, err := db.GetUserIdByName(user.Name); err != nil || id != -1 {
+		if err != nil {
+			return err
+		}
+		return errors.New("duplicated name")
 	}
 	user.Id = db.nextID
 	db.users[user.Id] = user
