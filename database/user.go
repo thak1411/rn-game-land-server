@@ -1,8 +1,10 @@
 package database
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/model"
@@ -44,6 +46,7 @@ func (db *UserDB) Create(user model.User) error {
 	user.Friend = make(map[int]bool)
 	db.users[user.Id] = user
 	db.nextID++
+	db.BackupDB()
 	return nil
 }
 
@@ -52,6 +55,7 @@ func (db *UserDB) Update(user model.User) error {
 		return errors.New("[UPDATE] There is No User With ID - " + fmt.Sprint(user.Id))
 	}
 	db.users[user.Id] = user
+	db.BackupDB()
 	return nil
 }
 
@@ -60,6 +64,7 @@ func (db *UserDB) Delete(id int) error {
 		return errors.New("[UPDATE] There is No User With ID - " + fmt.Sprint(id))
 	}
 	delete(db.users, id)
+	db.BackupDB()
 	return nil
 }
 
@@ -117,6 +122,7 @@ func (db *UserDB) AddFriend(userId, targetId int) error {
 	}
 	user.Friend[targetId] = true
 	db.users[userId] = user
+	db.BackupDB()
 	return nil
 }
 
@@ -131,6 +137,7 @@ func (db *UserDB) RemoveFriend(userId, targetId int) error {
 	}
 	delete(user.Friend, targetId)
 	db.users[userId] = user
+	db.BackupDB()
 	return nil
 }
 
@@ -146,8 +153,59 @@ func (db *UserDB) IsMyFriend(userId, targetId int) (bool, error) {
 	return user.Friend[targetId], nil
 }
 
+func (db *UserDB) BackupDB() {
+	out, err := os.Create("temp.dat")
+	if err != nil {
+		panic(err)
+	}
+	defer out.Close()
+	w := bufio.NewWriter(out)
+	defer w.Flush()
+	fmt.Fprintf(w, "%d %d\n", len(db.users), db.nextID)
+	for _, v := range db.users {
+		fmt.Fprintf(w, "%d %s %s %s %s %s\n", v.Id, v.Role, v.Name, v.Username, v.Salt, v.Password)
+		fmt.Fprintf(w, "%d", len(v.Friend))
+		for t, aw := range v.Friend {
+			var _ = aw
+			fmt.Fprintf(w, " %d", t)
+		}
+		fmt.Fprintf(w, "\n")
+	}
+}
+
+func LoadDB() (*UserDB, bool) {
+	db := &UserDB{users: make(map[int]model.User)}
+	in, err := os.Open("temp.dat")
+	if err != nil {
+		return nil, false
+	}
+	defer in.Close()
+
+	r := bufio.NewReader(in)
+	var n int
+	fmt.Fscan(r, &n, &db.nextID)
+	for i := 0; i < n; i++ {
+		user := model.User{}
+		fmt.Fscan(r, &user.Id, &user.Role, &user.Name, &user.Username, &user.Salt, &user.Password)
+		var m int
+		fmt.Fscan(r, &m)
+		user.Friend = make(map[int]bool)
+		for j := 0; j < m; j++ {
+			var id int
+			fmt.Fscan(r, &id)
+			user.Friend[id] = true
+		}
+		db.users[i] = user
+	}
+	return db, true
+}
+
 func NewUser() UserDatabase {
-	return &UserDB{
+	res, ok := LoadDB()
+	if ok {
+		return res
+	}
+	db := &UserDB{
 		users: map[int]model.User{
 			0: {
 				Id:       0,
@@ -161,4 +219,5 @@ func NewUser() UserDatabase {
 		},
 		nextID: 1,
 	}
+	return db
 }
