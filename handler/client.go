@@ -37,6 +37,7 @@ func (h *ClientHandler) WSChatServe(hub *model.ChatHub, w http.ResponseWriter, r
 		Send: make(chan []byte, 4096),
 		ChatUser: model.ChatUser{
 			Id:       token.Id,
+			Name:     token.Name,
 			Username: token.Username,
 		},
 	}

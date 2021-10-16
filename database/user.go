@@ -15,6 +15,7 @@ type UserDatabase interface {
 	GetAll() ([]model.User, error)
 	GetUser(string) (model.User, error)
 	GetUserId(string) (int, error)
+	GetUserIdByName(string) (int, error)
 	GetUserById(int) (model.User, error)
 	AddFriend(int, int) error
 }
@@ -74,6 +75,15 @@ func (db *UserDB) GetUser(username string) (model.User, error) {
 func (db *UserDB) GetUserId(username string) (int, error) {
 	for _, v := range db.users {
 		if v.Username == username {
+			return v.Id, nil
+		}
+	}
+	return -1, nil
+}
+
+func (db *UserDB) GetUserIdByName(name string) (int, error) {
+	for _, v := range db.users {
+		if v.Name == name {
 			return v.Id, nil
 		}
 	}

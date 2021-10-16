@@ -176,8 +176,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 type FriendForm struct {
-	Target   string `json:"target"`
-	Username string `json:"username"`
+	Name string `json:"name"`
 }
 
 func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
@@ -190,16 +189,13 @@ func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
 		}
 		iToken := r.Context().Value(config.Session)
 		token := iToken.(model.AuthTokenClaims)
-		if token.Username != body.Username {
-			http.Error(w, "unahthorized token", http.StatusUnauthorized)
-			return
-		}
-		target, err := h.uc.GetUser(body.Target)
+
+		userId, err := h.uc.GetUserIdByName(body.Name)
 		if err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
-		if err := h.uc.AddFriend(token.Id, target.Id); err != nil {
+		if err := h.uc.AddFriend(token.Id, userId); err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
@@ -210,6 +206,7 @@ func (h *UserHandler) AddFriend(w http.ResponseWriter, r *http.Request) {
 
 type RetUserProfile struct {
 	Id       int    `json:"id"`
+	Name     string `json:"name"`
 	Username string `json:"username"`
 }
 
@@ -233,6 +230,7 @@ func (h *UserHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
 		}
 		userProfile := RetUserProfile{
 			Id:       ret.Id,
+			Name:     ret.Name,
 			Username: ret.Username,
 		}
 		w.Header().Set("Content-Type", "application/json")

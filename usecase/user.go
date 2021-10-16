@@ -13,6 +13,7 @@ type UserUsecase interface {
 	GetAllUser() ([]model.User, error)
 	CheckUser(string, string) (bool, error)
 	GetUserId(string) (int, error)
+	GetUserIdByName(string) (int, error)
 	GetUser(string) (model.User, error)
 	GetUserById(int) (model.User, error)
 	AddFriend(int, int) error
@@ -45,6 +46,10 @@ func (uc *UserUC) GetAllUser() ([]model.User, error) {
 
 func (uc *UserUC) GetUserId(username string) (int, error) {
 	return uc.db.GetUserId(username)
+}
+
+func (uc *UserUC) GetUserIdByName(name string) (int, error) {
+	return uc.db.GetUserIdByName(name)
 }
 
 func (uc *UserUC) GetUser(username string) (model.User, error) {

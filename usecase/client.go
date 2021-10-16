@@ -23,10 +23,10 @@ type ClientUC struct{}
 type ChatResponse struct {
 	Code    int `json:"code"`
 	Message struct {
-		Id       int    `json:"id"`
-		Time     string `json:"time"`
-		Message  string `json:"message"`
-		Username string `json:"username"`
+		Id      int    `json:"id"`
+		Time    string `json:"time"`
+		Name    string `json:"name"`
+		Message string `json:"message"`
 	} `json:"message"`
 }
 
@@ -38,8 +38,8 @@ func ChatHandler(uc *ClientUC, client *model.ChatClient, message *model.WsDefaul
 		t := time.Now()
 		response.Message.Id = client.Id
 		response.Message.Time = fmt.Sprint(t.Hour()) + ":" + fmt.Sprint(t.Minute()) + ":" + fmt.Sprint(t.Second())
+		response.Message.Name = client.Name
 		response.Message.Message = message.Message
-		response.Message.Username = client.Username
 
 		msg, err := json.Marshal(response)
 		if err != nil {

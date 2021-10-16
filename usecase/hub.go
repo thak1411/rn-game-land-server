@@ -18,7 +18,7 @@ func (uc *HubUC) RunHub() {
 	for {
 		select {
 		case client := <-uc.Hub.Register:
-			uc.Hub.Clients[client] = model.ChatUser{Id: -999, Username: "Undefined"}
+			uc.Hub.Clients[client] = true
 			for _, v := range uc.Hub.LastLog {
 				client.Send <- []byte(v)
 			}
@@ -46,7 +46,7 @@ func (uc *HubUC) GetChatHub() *model.ChatHub {
 
 func NewHub() HubUsecase {
 	hub := &model.ChatHub{
-		Clients:    make(map[*model.ChatClient]model.ChatUser),
+		Clients:    make(map[*model.ChatClient]bool),
 		Register:   make(chan *model.ChatClient),
 		UnRegister: make(chan *model.ChatClient),
 		Broadcast:  make(chan []byte),

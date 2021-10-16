@@ -40,7 +40,8 @@ func TokenParse(f func(http.ResponseWriter, *http.Request)) func(http.ResponseWr
 			model.AuthTokenClaims{
 				Id:       -1,
 				Role:     config.RoleGuest,
-				Username: util.GenGuestName(),
+				Name:     util.GenGuestName(),
+				Username: "",
 			},
 		)
 		if err != nil {
