@@ -9,8 +9,9 @@ import (
 )
 
 func New() *http.ServeMux {
-	hubUsecase := usecase.NewHub()
-	hub := handler.NewHub(hubUsecase)
+	chatHubUsecase := usecase.NewChatHub()
+	noticeHubUsecase := usecase.NewNoticeHub()
+	hub := handler.NewHub(chatHubUsecase, noticeHubUsecase)
 	hub.RunHub()
 
 	clientUsecase := usecase.NewClient()
@@ -19,6 +20,9 @@ func New() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws/chat/connect", middleware.TokenParse(func(w http.ResponseWriter, r *http.Request) {
 		client.WSChatServe(hub.GetChatHub(), w, r)
+	}))
+	mux.HandleFunc("/ws/notice/connect", middleware.TokenDecode(func(w http.ResponseWriter, r *http.Request) {
+		client.WSNoticeServe(hub.GetNoticeHub(), w, r)
 	}))
 
 	userRouter := NewUser()

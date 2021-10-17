@@ -47,6 +47,31 @@ func (h *ClientHandler) WSChatServe(hub *model.ChatHub, w http.ResponseWriter, r
 	go h.uc.ChatClientWriter(client)
 }
 
+func (h *ClientHandler) WSNoticeServe(hub *model.NoticeHub, w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	iToken := r.Context().Value(config.Session)
+	token := iToken.(model.AuthTokenClaims)
+
+	client := &model.NoticeClient{
+		Hub:  hub,
+		Conn: conn,
+		Send: make(chan []byte, 4096),
+		NoticeUser: model.NoticeUser{
+			Id:       token.Id,
+			Name:     token.Name,
+			Username: token.Username,
+		},
+	}
+	client.Hub.Register <- client
+
+	go h.uc.NoticeClientReader(client)
+	go h.uc.NoticeClientWriter(client)
+}
+
 func NewClient(uc usecase.ClientUsecase) *ClientHandler {
 	return &ClientHandler{uc}
 }
