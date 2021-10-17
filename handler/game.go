@@ -48,7 +48,16 @@ func (h *GameHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		iToken := r.Context().Value(config.Session)
 		token := iToken.(model.AuthTokenClaims)
 
-		h.uc.CreateRoom(token.Id, body.GameId, token.Name+"'s Room", body.Option, token.Name)
+		room, err := h.uc.CreateRoom(token.Id, body.GameId, token.Name+"'s Room", body.Option, token.Name)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(room); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
