@@ -22,7 +22,9 @@ func New() *http.ServeMux {
 	}))
 
 	userRouter := NewUser()
+	gameRouter := NewGame()
 
 	mux.Handle("/api/user/", http.StripPrefix("/api/user", userRouter))
+	mux.Handle("/api/game/", http.StripPrefix("/api/game", gameRouter))
 	return mux
 }
