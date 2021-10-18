@@ -21,5 +21,6 @@ func NewGame() *http.ServeMux {
 
 	mux.HandleFunc("/gamelist", gameHandler.GetGamelist)
 	mux.HandleFunc("/create-room", tokenDecode(gameHandler.CreateRoom))
+	mux.HandleFunc("/room", tokenDecode(gameHandler.GetRoom))
 	return mux
 }

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/model"
@@ -60,6 +61,39 @@ func (h *GameHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		}
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *GameHandler) GetRoom(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		sroomId, ok := r.URL.Query()["roomId"]
+		if !ok {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		roomId, err := strconv.Atoi(sroomId[0])
+		if err != nil {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		room, err := h.uc.GetRoom(token.Id, roomId)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		if room == nil {
+			http.Error(w, "unahthorized token", http.StatusUnauthorized)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(room); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

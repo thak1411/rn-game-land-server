@@ -4,7 +4,8 @@ import "github.com/thak1411/rn-game-land-server/model"
 
 type GameDatabase interface {
 	GetGameList() ([]model.Game, error)
-	CreateRoom(int, int, string, string, string) (*model.Room, error)
+	GetGameName(int) (string, error)
+	CreateRoom(int, int, string, string, string, string) (*model.Room, error)
 	GetRoom(int) (*model.Room, error)
 }
 
@@ -18,13 +19,21 @@ func (db *GameDB) GetGameList() ([]model.Game, error) {
 	return db.GameList, nil
 }
 
-func (db *GameDB) CreateRoom(owner, gameId int, name, option, ownerName string) (*model.Room, error) {
+func (db *GameDB) GetGameName(gameId int) (string, error) {
+	if gameId < 0 || gameId >= len(db.GameList) {
+		return "", nil
+	}
+	return db.GameList[gameId].Name, nil
+}
+
+func (db *GameDB) CreateRoom(owner, gameId int, name, gameName, option, ownerName string) (*model.Room, error) {
 	room := &model.Room{
-		Id:     db.NextRoomId,
-		Name:   name,
-		Owner:  owner,
-		GameId: gameId,
-		Option: option,
+		Id:       db.NextRoomId,
+		Name:     name,
+		Owner:    owner,
+		GameId:   gameId,
+		Option:   option,
+		GameName: gameName,
 		Player: []*model.Player{
 			{
 				Id:       owner,
@@ -46,7 +55,7 @@ func NewGame() GameDatabase {
 	return &GameDB{
 		GameList: []model.Game{
 			{
-				Id:        0,
+				Id:        0, // Auto Increase //
 				Name:      "Yahtzee",
 				MinPlayer: 2,
 			},

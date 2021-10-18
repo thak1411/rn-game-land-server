@@ -8,7 +8,7 @@ import (
 type GameUsecase interface {
 	GetGameList() ([]model.Game, error)
 	CreateRoom(int, int, string, string, string) (*model.Room, error)
-	GetRoom(int) (*model.Room, error)
+	GetRoom(int, int) (*model.Room, error)
 }
 
 type GameUC struct {
@@ -20,11 +20,30 @@ func (uc *GameUC) GetGameList() ([]model.Game, error) {
 }
 
 func (uc *GameUC) CreateRoom(owner, gameId int, name, option, ownerName string) (*model.Room, error) {
-	return uc.db.CreateRoom(owner, gameId, name, option, ownerName)
+	gameName, err := uc.db.GetGameName(gameId)
+	if err != nil {
+		return nil, err
+	}
+	if gameName == "" {
+		return nil, nil
+	}
+	return uc.db.CreateRoom(owner, gameId, name, gameName, option, ownerName)
 }
 
-func (uc *GameUC) GetRoom(roomId int) (*model.Room, error) {
-	return uc.db.GetRoom(roomId)
+func (uc *GameUC) GetRoom(userId, roomId int) (*model.Room, error) {
+	room, err := uc.db.GetRoom(roomId)
+	if err != nil {
+		return nil, err
+	}
+	if room == nil {
+		return nil, nil
+	}
+	for _, p := range room.Player {
+		if p.Id == userId {
+			return room, nil
+		}
+	}
+	return nil, nil
 }
 
 func NewGame(db database.GameDatabase) GameUsecase {
