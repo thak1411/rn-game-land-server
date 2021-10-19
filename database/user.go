@@ -22,6 +22,7 @@ type UserDatabase interface {
 	AddFriend(int, int) error
 	RemoveFriend(int, int) error
 	IsMyFriend(int, int) (bool, error)
+	GetNameById(int) (string, error)
 }
 
 type UserDB struct {
@@ -153,6 +154,14 @@ func (db *UserDB) IsMyFriend(userId, targetId int) (bool, error) {
 	return user.Friend[targetId], nil
 }
 
+func (db *UserDB) GetNameById(userId int) (string, error) {
+	user, ok := db.users[userId]
+	if !ok {
+		return "", errors.New("user not found")
+	}
+	return user.Name, nil
+}
+
 func (db *UserDB) BackupDB() {
 	out, err := os.Create("temp.dat")
 	if err != nil {
@@ -195,7 +204,7 @@ func LoadDB() (*UserDB, bool) {
 			fmt.Fscan(r, &id)
 			user.Friend[id] = true
 		}
-		db.users[i] = user
+		db.users[user.Id] = user
 	}
 	return db, true
 }

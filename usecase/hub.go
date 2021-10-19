@@ -79,7 +79,45 @@ func InviteToString(invite *model.InviteForm) []byte {
 	emsg := `{"code":200,"message":"internal server error"}`
 	ret.Code = 200
 	ret.Message.From = invite.From
-	ret.Message.RoomId = invite.RoodId
+	ret.Message.RoomId = invite.RoomId
+	b, err := json.Marshal(ret)
+	if err != nil {
+		return []byte(emsg)
+	}
+	return b
+}
+
+type RetJoinMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId int `json:"userId"`
+	} `json:"message"`
+}
+
+func JoinToString(userId int) []byte {
+	ret := &RetJoinMessage{Code: 201}
+	emsg := `{"code":201,"message":"internal server error"}`
+	ret.Code = 201
+	ret.Message.UserId = userId
+	b, err := json.Marshal(ret)
+	if err != nil {
+		return []byte(emsg)
+	}
+	return b
+}
+
+type RetLeaveMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId int `json:"userId"`
+	} `json:"message"`
+}
+
+func LeaveToString(userId int) []byte {
+	ret := &RetLeaveMessage{Code: 202}
+	emsg := `{"code":202,"message":"internal server error"}`
+	ret.Code = 202
+	ret.Message.UserId = userId
 	b, err := json.Marshal(ret)
 	if err != nil {
 		return []byte(emsg)
@@ -105,6 +143,18 @@ func (uc *NoticeHubUC) RunNoticeHub() {
 				uc.Hub.Clients[msg.TargetId].Send <- InviteToString(msg)
 			}
 			uc.Hub.InviteLog[msg.TargetId] = append(uc.Hub.InviteLog[msg.TargetId], msg)
+		case msg := <-uc.Hub.Join:
+			for _, v := range msg.TargetsId {
+				if _, ok := uc.Hub.Clients[v]; ok {
+					uc.Hub.Clients[v].Send <- JoinToString(msg.UserId)
+				}
+			}
+		case msg := <-uc.Hub.Leave:
+			for _, v := range msg.TargetsId {
+				if _, ok := uc.Hub.Clients[v]; ok {
+					uc.Hub.Clients[v].Send <- LeaveToString(msg.UserId)
+				}
+			}
 		}
 	}
 }
@@ -120,6 +170,8 @@ func NewNoticeHub() NoticeHubUsecase {
 		UnRegister: make(chan *model.NoticeClient),
 		Invite:     make(chan *model.InviteForm),
 		InviteLog:  make(map[int][]*model.InviteForm),
+		Join:       make(chan *model.JoinForm),
+		Leave:      make(chan *model.LeaveForm),
 	}
 	return &NoticeHubUC{hub}
 }

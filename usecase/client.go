@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/thak1411/rn-game-land-server/config"
+	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/model"
 	"github.com/thak1411/rn-game-land-server/util"
 )
@@ -20,7 +22,10 @@ type ClientUsecase interface {
 	NoticeClientWriter(*model.NoticeClient)
 }
 
-type ClientUC struct{}
+type ClientUC struct {
+	db     database.GameDatabase
+	userdb database.UserDatabase
+}
 
 type ChatResponse struct {
 	Code    int `json:"code"`
@@ -125,8 +130,39 @@ func NoticeHandler(uc *ClientUC, client *model.NoticeClient, message *model.WsDe
 			log.Printf("error: %v", err)
 			return
 		}
+		targetName, err := uc.userdb.GetNameById(msg.TargetId)
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+		uc.db.AppendRoomPlayer(msg.RoomId, msg.TargetId, targetName)
 		msg.From = client.Id
 		client.Hub.Invite <- msg
+		// TODO: limit room size //
+	case 51:
+		roomId, err := strconv.Atoi(message.Message)
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+		join, err := uc.db.SetUserOnline(roomId, client.Id)
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+		if join {
+			room, err := uc.db.GetRoom(roomId)
+			if err != nil {
+				log.Printf("error: %v", err)
+				return
+			}
+			msg := &model.JoinForm{}
+			msg.UserId = client.Id
+			for _, v := range room.Player {
+				msg.TargetsId = append(msg.TargetsId, v.Id)
+			}
+			client.Hub.Join <- msg
+		}
 	}
 }
 
@@ -159,6 +195,25 @@ func (uc *ClientUC) NoticeClientReader(client *model.NoticeClient) {
 func (uc *ClientUC) NoticeClientWriter(client *model.NoticeClient) {
 	ticker := time.NewTicker(config.PingPeriod)
 	defer func() {
+		// in disconnected //
+		leave, room, err := uc.db.SetUserOffline(client.Id)
+		fmt.Println("DIS")
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+		if leave {
+			msg := &model.LeaveForm{}
+			msg.UserId = client.Id
+			for _, v := range room.Player {
+				if v.Id == client.Id {
+					continue
+				}
+				msg.TargetsId = append(msg.TargetsId, v.Id)
+			}
+			client.Hub.Leave <- msg
+		}
+
 		ticker.Stop()
 		client.Conn.Close()
 	}()
@@ -195,6 +250,6 @@ func (uc *ClientUC) NoticeClientWriter(client *model.NoticeClient) {
 	}
 }
 
-func NewClient() ClientUsecase {
-	return &ClientUC{}
+func NewClient(db database.GameDatabase, userdb database.UserDatabase) ClientUsecase {
+	return &ClientUC{db, userdb}
 }

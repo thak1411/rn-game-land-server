@@ -21,10 +21,22 @@ type NoticeHub struct {
 	UnRegister chan *NoticeClient
 	Invite     chan *InviteForm
 	InviteLog  map[int][]*InviteForm
+	Join       chan *JoinForm
+	Leave      chan *LeaveForm
 }
 
 type InviteForm struct {
 	From     int `json:"from"`
-	RoodId   int `json:"roodId"`
+	RoomId   int `json:"roomId"`
 	TargetId int `json:"targetId"`
+}
+
+type JoinForm struct {
+	UserId    int   `json:"userId"`
+	TargetsId []int `json:"targetId"`
+}
+
+type LeaveForm struct {
+	UserId    int   `json:"userId"`
+	TargetsId []int `json:"targetId"`
 }
