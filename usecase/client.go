@@ -137,6 +137,16 @@ func NoticeHandler(uc *ClientUC, client *model.NoticeClient, message *model.WsDe
 		}
 		uc.db.AppendRoomPlayer(msg.RoomId, msg.TargetId, targetName)
 		msg.From = client.Id
+		msg.TargetName = targetName
+
+		room, err := uc.db.GetRoom(msg.RoomId)
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+		for _, v := range room.Player {
+			msg.TargetsId = append(msg.TargetsId, v.Id)
+		}
 		client.Hub.Invite <- msg
 		// TODO: limit room size //
 	case 51:
@@ -197,7 +207,6 @@ func (uc *ClientUC) NoticeClientWriter(client *model.NoticeClient) {
 	defer func() {
 		// in disconnected //
 		leave, room, err := uc.db.SetUserOffline(client.Id)
-		fmt.Println("DIS")
 		if err != nil {
 			log.Printf("error: %v", err)
 			return

@@ -87,6 +87,27 @@ func InviteToString(invite *model.InviteForm) []byte {
 	return b
 }
 
+type RetInviteMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId   int    `json:"userId"`
+		UserName string `json:"userName"`
+	} `json:"message"`
+}
+
+func InviteToString2(invite *model.InviteForm) []byte {
+	ret := &RetInviteMessage{Code: 203}
+	emsg := `{"code":203,"message":"internal server error"}`
+	ret.Code = 203
+	ret.Message.UserId = invite.TargetId
+	ret.Message.UserName = invite.TargetName
+	b, err := json.Marshal(ret)
+	if err != nil {
+		return []byte(emsg)
+	}
+	return b
+}
+
 type RetJoinMessage struct {
 	Code    int `json:"code"`
 	Message struct {
@@ -141,6 +162,11 @@ func (uc *NoticeHubUC) RunNoticeHub() {
 		case msg := <-uc.Hub.Invite:
 			if _, ok := uc.Hub.Clients[msg.TargetId]; ok {
 				uc.Hub.Clients[msg.TargetId].Send <- InviteToString(msg)
+			}
+			for _, v := range msg.TargetsId {
+				if _, ok := uc.Hub.Clients[v]; ok {
+					uc.Hub.Clients[v].Send <- InviteToString2(msg)
+				}
 			}
 			uc.Hub.InviteLog[msg.TargetId] = append(uc.Hub.InviteLog[msg.TargetId], msg)
 		case msg := <-uc.Hub.Join:

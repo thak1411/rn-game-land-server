@@ -26,9 +26,11 @@ type NoticeHub struct {
 }
 
 type InviteForm struct {
-	From     int `json:"from"`
-	RoomId   int `json:"roomId"`
-	TargetId int `json:"targetId"`
+	From       int    `json:"from"`
+	RoomId     int    `json:"roomId"`
+	TargetId   int    `json:"targetId"`
+	TargetsId  []int  `json:"targetsId"`
+	TargetName string `json:"targetName"`
 }
 
 type JoinForm struct {
