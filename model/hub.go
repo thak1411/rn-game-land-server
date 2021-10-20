@@ -35,10 +35,12 @@ type InviteForm struct {
 
 type JoinForm struct {
 	UserId    int   `json:"userId"`
+	RoomId    int   `json:"roomId"`
 	TargetsId []int `json:"targetId"`
 }
 
 type LeaveForm struct {
 	UserId    int   `json:"userId"`
+	RoomId    int   `json:"roomId"`
 	TargetsId []int `json:"targetId"`
 }

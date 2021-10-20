@@ -63,6 +63,7 @@ func (h *ClientHandler) WSNoticeServe(hub *model.NoticeHub, w http.ResponseWrite
 		NoticeUser: model.NoticeUser{
 			Id:       token.Id,
 			Name:     token.Name,
+			RoomId:   -1,
 			Username: token.Username,
 		},
 	}

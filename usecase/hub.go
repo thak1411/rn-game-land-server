@@ -165,20 +165,32 @@ func (uc *NoticeHubUC) RunNoticeHub() {
 			}
 			for _, v := range msg.TargetsId {
 				if _, ok := uc.Hub.Clients[v]; ok {
-					uc.Hub.Clients[v].Send <- InviteToString2(msg)
+					if uc.Hub.Clients[v].RoomId == msg.RoomId {
+						uc.Hub.Clients[v].Send <- InviteToString2(msg)
+					}
 				}
 			}
 			uc.Hub.InviteLog[msg.TargetId] = append(uc.Hub.InviteLog[msg.TargetId], msg)
 		case msg := <-uc.Hub.Join:
+			if _, ok := uc.Hub.Clients[msg.UserId]; ok {
+				uc.Hub.Clients[msg.UserId].RoomId = msg.RoomId
+			}
 			for _, v := range msg.TargetsId {
 				if _, ok := uc.Hub.Clients[v]; ok {
-					uc.Hub.Clients[v].Send <- JoinToString(msg.UserId)
+					if uc.Hub.Clients[v].RoomId == msg.RoomId {
+						uc.Hub.Clients[v].Send <- JoinToString(msg.UserId)
+					}
 				}
 			}
 		case msg := <-uc.Hub.Leave:
+			if _, ok := uc.Hub.Clients[msg.UserId]; ok {
+				uc.Hub.Clients[msg.UserId].RoomId = -1
+			}
 			for _, v := range msg.TargetsId {
 				if _, ok := uc.Hub.Clients[v]; ok {
-					uc.Hub.Clients[v].Send <- LeaveToString(msg.UserId)
+					if uc.Hub.Clients[v].RoomId == msg.RoomId {
+						uc.Hub.Clients[v].Send <- LeaveToString(msg.UserId)
+					}
 				}
 			}
 		}

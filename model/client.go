@@ -37,5 +37,6 @@ type NoticeClient struct {
 type NoticeUser struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
+	RoomId   int    `json:"roomId"`
 	Username string `json:"username"`
 }

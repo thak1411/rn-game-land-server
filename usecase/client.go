@@ -168,6 +168,7 @@ func NoticeHandler(uc *ClientUC, client *model.NoticeClient, message *model.WsDe
 			}
 			msg := &model.JoinForm{}
 			msg.UserId = client.Id
+			msg.RoomId = roomId
 			for _, v := range room.Player {
 				msg.TargetsId = append(msg.TargetsId, v.Id)
 			}
@@ -214,6 +215,7 @@ func (uc *ClientUC) NoticeClientWriter(client *model.NoticeClient) {
 		if leave {
 			msg := &model.LeaveForm{}
 			msg.UserId = client.Id
+			msg.RoomId = room.Id
 			for _, v := range room.Player {
 				if v.Id == client.Id {
 					continue
