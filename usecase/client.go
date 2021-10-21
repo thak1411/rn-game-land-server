@@ -130,20 +130,28 @@ func NoticeHandler(uc *ClientUC, client *model.NoticeClient, message *model.WsDe
 			log.Printf("error: %v", err)
 			return
 		}
-		targetName, err := uc.userdb.GetNameById(msg.TargetId)
-		if err != nil {
-			log.Printf("error: %v", err)
-			return
-		}
-		uc.db.AppendRoomPlayer(msg.RoomId, msg.TargetId, targetName)
 		msg.From = client.Id
-		msg.TargetName = targetName
-
 		room, err := uc.db.GetRoom(msg.RoomId)
 		if err != nil {
 			log.Printf("error: %v", err)
 			return
 		}
+
+		if room.Owner != msg.From {
+			log.Printf("only owner can invite people")
+			return
+		}
+
+		targetName, err := uc.userdb.GetNameById(msg.TargetId)
+		if err != nil {
+			log.Printf("error: %v", err)
+			return
+		}
+
+		uc.db.AppendRoomPlayer(msg.RoomId, msg.TargetId, targetName)
+		msg.From = client.Id
+		msg.TargetName = targetName
+
 		for _, v := range room.Player {
 			msg.TargetsId = append(msg.TargetsId, v.Id)
 		}

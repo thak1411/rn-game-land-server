@@ -28,5 +28,6 @@ func NewUser() *http.ServeMux {
 	mux.HandleFunc("/add-friend", tokenDecode(userHandler.AddFriend))
 	mux.HandleFunc("/remove-friend", tokenDecode(userHandler.RemoveFriend))
 	mux.HandleFunc("/is-my-friend", tokenDecode(userHandler.IsMyFriend))
+	mux.HandleFunc("/get-friend", tokenDecode(userHandler.GetFriend))
 	return mux
 }

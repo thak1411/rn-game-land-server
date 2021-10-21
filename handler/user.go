@@ -324,6 +324,54 @@ func (h *UserHandler) IsMyFriend(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type RetFriend struct {
+	Id       int    `json:"id"`
+	Name     string `json:"name"`
+	Username string `json:"username"`
+}
+
+func (h *UserHandler) GetFriend(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		iToken := r.Context().Value(config.Session)
+		token := iToken.(model.AuthTokenClaims)
+
+		var name string
+		qname, ok := r.URL.Query()["name"]
+		if !ok || len(qname) < 1 {
+			name = token.Username
+		} else {
+			name = qname[0]
+		}
+
+		id, err := h.uc.GetUserIdByName(name)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		res, err := h.uc.GetFriend(id)
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		ret := []RetFriend{}
+		for _, v := range res {
+			ret = append(ret, RetFriend{
+				Id:       v.Id,
+				Name:     v.Name,
+				Username: v.Username,
+			})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(ret); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 func NewUser(uc usecase.UserUsecase) *UserHandler {
 	return &UserHandler{uc}
 }

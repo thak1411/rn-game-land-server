@@ -23,6 +23,7 @@ type UserDatabase interface {
 	RemoveFriend(int, int) error
 	IsMyFriend(int, int) (bool, error)
 	GetNameById(int) (string, error)
+	GetFriend(int) ([]model.User, error)
 }
 
 type UserDB struct {
@@ -160,6 +161,18 @@ func (db *UserDB) GetNameById(userId int) (string, error) {
 		return "", errors.New("user not found")
 	}
 	return user.Name, nil
+}
+
+func (db *UserDB) GetFriend(userId int) ([]model.User, error) {
+	user, ok := db.users[userId]
+	if !ok {
+		return nil, errors.New("user not found")
+	}
+	list := []model.User{}
+	for i := range user.Friend {
+		list = append(list, db.users[i])
+	}
+	return list, nil
 }
 
 func (db *UserDB) BackupDB() {
