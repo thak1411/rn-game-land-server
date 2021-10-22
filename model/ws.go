@@ -19,6 +19,7 @@ type WsHub struct {
 	Register     chan *WsClient
 	UnRegister   chan *WsClient
 	Broadcast    chan []byte
+	Narrowcast   chan *NarrowcastHandler
 	BroadcastLog [][]byte
 }
 
@@ -29,6 +30,20 @@ type WsUser struct {
 	Username string `json:"username"`
 }
 
+type NarrowcastHandler struct {
+	Response []byte
+	Targets  []int
+}
+
 const (
-	BroadcastLogLen = 20
+	// config //
+	BC_LOG_LEN = 20
+
+	// status code //
+	RES_BROADCAST = 100
+
+	// message code //
+	REQ_BROADCAST = 90
+	REQ_INVITE    = 50
+	REQ_JOIN      = 51
 )

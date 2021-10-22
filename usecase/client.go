@@ -268,6 +268,10 @@ import (
 // 	}
 // }
 
+var badRequest = []byte(`{"code":400, "message": "bad request"}`)
+var internalError = []byte(`{"code":500, "message": "internal server error"}`)
+var unauthorizedError = []byte(`{"code":401, "message": "unauthorized behavior"}`)
+
 type ClientUsecase interface {
 	ClientReader(*model.WsClient)
 	ClientWriter(*model.WsClient)
@@ -296,10 +300,9 @@ type ChatResponse struct {
 }
 
 func SendChat(uc *ClientUC, client *model.WsClient, message *ChatMessage) {
-	internalError := []byte(`{"code":500, "message": "internal server error"}`)
 	response := &ChatResponse{}
 	t := time.Now()
-	response.Code = 100
+	response.Code = model.RES_BROADCAST
 	response.Message.Id = client.Id
 	response.Message.Time = fmt.Sprint(t.Hour()) + ":" + fmt.Sprint(t.Minute()) + ":" + fmt.Sprint(t.Second())
 	response.Message.Name = client.Name
@@ -313,8 +316,211 @@ func SendChat(uc *ClientUC, client *model.WsClient, message *ChatMessage) {
 	client.Hub.Broadcast <- msg
 }
 
+type InviteMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		RoomId   int `json:"roomId"`
+		TargetId int `json:"targetId"`
+	} `json:"message"`
+}
+
+type InviteResponse struct {
+	Code    int `json:"code"`
+	Message struct {
+		From       int    `json:"from"`
+		RoomId     int    `json:"roomId"`
+		FromName   string `json:"fronName"`
+		TargetId   int    `json:"targetId"`
+		TargetName string `json:"targetName"`
+	} `json:"message"`
+}
+
+func SendInvite(uc *ClientUC, client *model.WsClient, message *InviteMessage) {
+	response := &InviteResponse{}
+
+	msg := &message.Message
+	res := &response.Message
+
+	response.Code = 200
+	res.From = client.Id
+	res.RoomId = msg.RoomId
+	res.FromName = client.Name
+	res.TargetId = msg.TargetId
+
+	room, err := uc.db.GetRoom(res.RoomId)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+
+	if room.Owner != res.From {
+		log.Printf("only owner can invite people")
+		client.Send <- unauthorizedError
+		return
+	}
+
+	targetName, err := uc.userdb.GetNameById(res.TargetId)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+
+	uc.db.AppendRoomPlayer(res.RoomId, res.TargetId, targetName)
+	res.From = client.Id
+	res.TargetName = targetName
+
+	var targetsId []int
+	for _, v := range room.Player {
+		if v.IsOnline {
+			targetsId = append(targetsId, v.Id)
+		}
+	}
+
+	narrowMsg, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+
+	narrowHandler := &model.NarrowcastHandler{
+		Response: narrowMsg,
+		Targets:  targetsId,
+	}
+	client.Hub.Narrowcast <- narrowHandler
+	narrowHandler2 := &model.NarrowcastHandler{
+		Response: narrowMsg,
+		Targets:  []int{msg.TargetId},
+	}
+	client.Hub.Narrowcast <- narrowHandler2
+	// TODO: limit room size //
+}
+
+type JoinMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+type JoinResponse struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId int `json:"userId"`
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+func SendJoin(uc *ClientUC, client *model.WsClient, message *JoinMessage) {
+	response := &JoinResponse{}
+
+	msg := &message.Message
+	res := &response.Message
+
+	response.Code = 201
+
+	join, err := uc.db.SetUserOnline(msg.RoomId, client.Id)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+	if join {
+		client.RoomId = msg.RoomId
+
+		room, err := uc.db.GetRoom(msg.RoomId)
+		if err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- internalError
+			return
+		}
+		res.UserId = client.Id
+		res.RoomId = msg.RoomId
+
+		var targetsId []int
+		for _, v := range room.Player {
+			if v.IsOnline {
+				targetsId = append(targetsId, v.Id)
+			}
+		}
+
+		narrowMsg, err := json.Marshal(response)
+		if err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- internalError
+			return
+		}
+
+		narrowHandler := &model.NarrowcastHandler{
+			Response: narrowMsg,
+			Targets:  targetsId,
+		}
+
+		client.Hub.Narrowcast <- narrowHandler
+	} else {
+		log.Printf("join error")
+		client.Send <- internalError
+		return
+	}
+}
+
+type LeaveResponse struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId int `json:"userId"`
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+func SendLeave(uc *ClientUC, client *model.WsClient) {
+	// TODO: check user has room //
+	if client.RoomId == -1 {
+		return
+	}
+
+	response := &LeaveResponse{}
+
+	response.Code = 202
+	res := &response.Message
+
+	leave, room, err := uc.db.SetUserOffline(client.Id)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+	if leave {
+		res.UserId = client.Id
+		res.RoomId = room.Id
+
+		var targetsId []int
+		for _, v := range room.Player {
+			if v.Id != client.Id && v.IsOnline {
+				targetsId = append(targetsId, v.Id)
+			}
+		}
+		narrowMsg, err := json.Marshal(response)
+		if err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- internalError
+			return
+		}
+
+		narrowHandler := &model.NarrowcastHandler{
+			Response: narrowMsg,
+			Targets:  targetsId,
+		}
+		client.Hub.Narrowcast <- narrowHandler
+	} else {
+		log.Printf("leave error")
+		client.Send <- internalError
+		return
+	}
+}
+
 func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
-	badRequest := []byte(`{"code":400, "message": "bad request"}`)
 	defaultMessage := &model.WsDefaultMessage{}
 	if err := util.BindJson(msg, defaultMessage); err != nil {
 		log.Printf("error: %v", err)
@@ -323,7 +529,7 @@ func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
 	}
 
 	switch defaultMessage.Code {
-	case 90: // Warnings: Change Code to Const Var //
+	case model.REQ_BROADCAST:
 		message := &ChatMessage{}
 		if err := util.BindJson(msg, message); err != nil {
 			log.Printf("error: %v", err)
@@ -331,6 +537,22 @@ func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
 			return
 		}
 		SendChat(uc, client, message)
+	case model.REQ_INVITE:
+		message := &InviteMessage{}
+		if err := util.BindJson(msg, message); err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- badRequest
+			return
+		}
+		SendInvite(uc, client, message)
+	case model.REQ_JOIN:
+		message := &JoinMessage{}
+		if err := util.BindJson(msg, message); err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- badRequest
+			return
+		}
+		SendJoin(uc, client, message)
 	}
 }
 
@@ -358,6 +580,8 @@ func (uc *ClientUC) ClientReader(client *model.WsClient) {
 func (uc *ClientUC) ClientWriter(client *model.WsClient) {
 	ticker := time.NewTicker(config.PingPeriod)
 	defer func() {
+		SendLeave(uc, client) // in disconnected send room leave event
+
 		ticker.Stop()
 		client.Conn.Close()
 	}()

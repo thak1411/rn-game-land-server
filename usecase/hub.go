@@ -241,10 +241,16 @@ func (uc *HubUC) RunHub() {
 			for _, v := range uc.Hub.Clients {
 				v.Send <- msg
 			}
-			if len(uc.Hub.BroadcastLog) < model.BroadcastLogLen {
+			if len(uc.Hub.BroadcastLog) < model.BC_LOG_LEN {
 				uc.Hub.BroadcastLog = append(uc.Hub.BroadcastLog, msg)
 			} else {
 				uc.Hub.BroadcastLog = append(uc.Hub.BroadcastLog[1:], msg)
+			}
+		case msg := <-uc.Hub.Narrowcast:
+			for _, v := range msg.Targets {
+				if _, ok := uc.Hub.Clients[v]; ok {
+					uc.Hub.Clients[v].Send <- msg.Response
+				}
 			}
 		}
 	}
@@ -256,6 +262,7 @@ func NewHub() HubUsecase {
 		Register:     make(chan *model.WsClient),
 		UnRegister:   make(chan *model.WsClient),
 		Broadcast:    make(chan []byte),
+		Narrowcast:   make(chan *model.NarrowcastHandler),
 		BroadcastLog: [][]byte{},
 	}
 	return &HubUC{hub}
