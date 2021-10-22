@@ -22,7 +22,7 @@ type ClientHandler struct {
 	uc usecase.ClientUsecase
 }
 
-func (h *ClientHandler) WSChatServe(hub *model.ChatHub, w http.ResponseWriter, r *http.Request) {
+func (h *ClientHandler) WsServe(hub *model.WsHub, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -31,36 +31,11 @@ func (h *ClientHandler) WSChatServe(hub *model.ChatHub, w http.ResponseWriter, r
 	iToken := r.Context().Value(config.Session)
 	token := iToken.(model.AuthTokenClaims)
 
-	client := &model.ChatClient{
+	client := &model.WsClient{
 		Hub:  hub,
 		Conn: conn,
 		Send: make(chan []byte, 4096),
-		ChatUser: model.ChatUser{
-			Id:       token.Id,
-			Name:     token.Name,
-			Username: token.Username,
-		},
-	}
-	client.Hub.Register <- client
-
-	go h.uc.ChatClientReader(client)
-	go h.uc.ChatClientWriter(client)
-}
-
-func (h *ClientHandler) WSNoticeServe(hub *model.NoticeHub, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	iToken := r.Context().Value(config.Session)
-	token := iToken.(model.AuthTokenClaims)
-
-	client := &model.NoticeClient{
-		Hub:  hub,
-		Conn: conn,
-		Send: make(chan []byte, 4096),
-		NoticeUser: model.NoticeUser{
+		WsUser: model.WsUser{
 			Id:       token.Id,
 			Name:     token.Name,
 			RoomId:   -1,
@@ -69,8 +44,8 @@ func (h *ClientHandler) WSNoticeServe(hub *model.NoticeHub, w http.ResponseWrite
 	}
 	client.Hub.Register <- client
 
-	go h.uc.NoticeClientReader(client)
-	go h.uc.NoticeClientWriter(client)
+	go h.uc.ClientReader(client)
+	go h.uc.ClientWriter(client)
 }
 
 func NewClient(uc usecase.ClientUsecase) *ClientHandler {

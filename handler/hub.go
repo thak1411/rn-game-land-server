@@ -6,23 +6,17 @@ import (
 )
 
 type HubHandler struct {
-	cuc usecase.ChatHubUsecase
-	nuc usecase.NoticeHubUsecase
+	uc usecase.HubUsecase
 }
 
 func (h *HubHandler) RunHub() {
-	go h.cuc.RunChatHub()
-	go h.nuc.RunNoticeHub()
+	go h.uc.RunHub()
 }
 
-func (h *HubHandler) GetChatHub() *model.ChatHub {
-	return h.cuc.GetChatHub()
+func (h *HubHandler) GetHub() *model.WsHub {
+	return h.uc.GetHub()
 }
 
-func (h *HubHandler) GetNoticeHub() *model.NoticeHub {
-	return h.nuc.GetNoticeHub()
-}
-
-func NewHub(cuc usecase.ChatHubUsecase, nuc usecase.NoticeHubUsecase) *HubHandler {
-	return &HubHandler{cuc, nuc}
+func NewHub(uc usecase.HubUsecase) *HubHandler {
+	return &HubHandler{uc}
 }
