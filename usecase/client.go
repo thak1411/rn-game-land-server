@@ -330,6 +330,8 @@ type InviteResponse struct {
 	Message struct {
 		From       int    `json:"from"`
 		RoomId     int    `json:"roomId"`
+		RoomName   string `json:"roomName"`
+		GameName   string `json:"gameName"`
 		FromName   string `json:"fromName"`
 		TargetId   int    `json:"targetId"`
 		TargetName string `json:"targetName"`
@@ -370,6 +372,8 @@ func SendInvite(uc *ClientUC, client *model.WsClient, message *InviteMessage) {
 
 	uc.gamedb.AppendRoomPlayer(res.RoomId, res.TargetId, targetName)
 	res.From = client.Id
+	res.RoomName = room.Name
+	res.GameName = room.GameName
 	res.TargetName = targetName
 
 	var targetsId []int
@@ -533,6 +537,72 @@ func SendLeave(uc *ClientUC, client *model.WsClient) {
 	}
 }
 
+type RejectInviteMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+type RejectInviteResponse struct {
+	Code    int `json:"code"`
+	Message struct {
+		UserId int `json:"userId"`
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+func SendRejectInvite(uc *ClientUC, client *model.WsClient, message *RejectInviteMessage) {
+	response := &RejectInviteResponse{}
+
+	response.Code = 204
+	res := response.Message
+	msg := message.Message
+
+	room, err := uc.gamedb.GetRoom(msg.RoomId)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+
+	cnt, err := uc.gamedb.DeleteInviteMessage(client.Id, msg.RoomId)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+	if cnt == 0 {
+		log.Printf("not found to rejecting invite")
+		client.Send <- badRequest
+		return
+	}
+
+	res.UserId = client.Id
+	res.RoomId = msg.RoomId
+
+	var targetsId []int
+	for _, v := range room.Player {
+		if v.IsOnline {
+			targetsId = append(targetsId, v.Id)
+		}
+	}
+	targetsId = append(targetsId, client.Id)
+
+	narrowMsg, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+
+	narrowHandler := &model.NarrowcastHandler{
+		Response: narrowMsg,
+		Targets:  targetsId,
+	}
+	client.Hub.Narrowcast <- narrowHandler
+}
+
 func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
 	defaultMessage := &model.WsDefaultMessage{}
 	if err := util.BindJson(msg, defaultMessage); err != nil {
@@ -566,6 +636,14 @@ func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
 			return
 		}
 		SendJoin(uc, client, message)
+	case model.REQ_REJECT:
+		message := &RejectInviteMessage{}
+		if err := util.BindJson(msg, message); err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- badRequest
+			return
+		}
+		SendRejectInvite(uc, client, message)
 	}
 }
 

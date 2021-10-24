@@ -46,4 +46,5 @@ const (
 	REQ_BROADCAST = 90
 	REQ_INVITE    = 50
 	REQ_JOIN      = 51
+	REQ_REJECT    = 52
 )
