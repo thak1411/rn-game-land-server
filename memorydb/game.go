@@ -15,6 +15,7 @@ type GameDatabase interface {
 	SetUserOnline(int, int) (bool, error)
 	SetUserOffline(int) (bool, *model.Room, error)
 	AppendRoomPlayer(int, int, string) (bool, error)
+	DeleteRoomPlayer(int, int) (bool, error)
 	GetInviteMessage(int) ([][]byte, error)
 	AppendInviteMessage(int, []byte) (bool, error)
 	DeleteInviteMessage(int, int) (int, error)
@@ -110,6 +111,21 @@ func (db *GameDB) AppendRoomPlayer(roomId, userId int, userName string) (bool, e
 		IsOnline: false,
 	})
 	db.RoomList[roomId] = room
+	return false, nil
+}
+
+func (db *GameDB) DeleteRoomPlayer(roomId, userId int) (bool, error) {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return false, err
+	}
+	for i, v := range room.Player {
+		if v.Id == userId {
+			room.Player = append(room.Player[:i], room.Player[i+1:]...)
+			db.RoomList[roomId] = room
+			return true, nil
+		}
+	}
 	return false, nil
 }
 

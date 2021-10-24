@@ -531,8 +531,8 @@ func SendLeave(uc *ClientUC, client *model.WsClient) {
 		}
 		client.Hub.Narrowcast <- narrowHandler
 	} else {
-		log.Printf("leave error")
-		client.Send <- internalError
+		// log.Printf("leave error")
+		// client.Send <- internalError
 		return
 	}
 }
@@ -556,8 +556,8 @@ func SendRejectInvite(uc *ClientUC, client *model.WsClient, message *RejectInvit
 	response := &RejectInviteResponse{}
 
 	response.Code = 204
-	res := response.Message
-	msg := message.Message
+	res := &response.Message
+	msg := &message.Message
 
 	room, err := uc.gamedb.GetRoom(msg.RoomId)
 	if err != nil {
@@ -578,16 +578,25 @@ func SendRejectInvite(uc *ClientUC, client *model.WsClient, message *RejectInvit
 		return
 	}
 
-	res.UserId = client.Id
-	res.RoomId = msg.RoomId
+	del, err := uc.gamedb.DeleteRoomPlayer(msg.RoomId, client.Id)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
 
 	var targetsId []int
-	for _, v := range room.Player {
-		if v.IsOnline {
-			targetsId = append(targetsId, v.Id)
+	if del {
+		for _, v := range room.Player {
+			if v.IsOnline {
+				targetsId = append(targetsId, v.Id)
+			}
 		}
 	}
 	targetsId = append(targetsId, client.Id)
+
+	res.UserId = client.Id
+	res.RoomId = msg.RoomId
 
 	narrowMsg, err := json.Marshal(response)
 	if err != nil {
