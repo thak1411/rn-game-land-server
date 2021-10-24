@@ -5,17 +5,19 @@ import (
 
 	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/handler"
+	"github.com/thak1411/rn-game-land-server/memorydb"
 	"github.com/thak1411/rn-game-land-server/middleware"
 	"github.com/thak1411/rn-game-land-server/usecase"
 )
 
 func New() *http.ServeMux {
-	hubUsecase := usecase.NewHub()
+	gameDatabase := memorydb.NewGame()
+
+	hubUsecase := usecase.NewHub(gameDatabase)
 	hub := handler.NewHub(hubUsecase)
 	hub.RunHub()
 
 	userDatabase := database.NewUser()
-	gameDatabase := database.NewGame()
 	clientUsecase := usecase.NewClient(gameDatabase, userDatabase)
 	client := handler.NewClient(clientUsecase)
 

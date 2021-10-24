@@ -3,8 +3,8 @@ package router
 import (
 	"net/http"
 
-	"github.com/thak1411/rn-game-land-server/database"
 	"github.com/thak1411/rn-game-land-server/handler"
+	"github.com/thak1411/rn-game-land-server/memorydb"
 	"github.com/thak1411/rn-game-land-server/middleware"
 	"github.com/thak1411/rn-game-land-server/usecase"
 )
@@ -15,7 +15,7 @@ func NewGame() *http.ServeMux {
 
 	mux := http.NewServeMux()
 
-	gameDatabase := database.NewGame()
+	gameDatabase := memorydb.NewGame()
 	gameUsecase := usecase.NewGame(gameDatabase)
 	gameHandler := handler.NewGame(gameUsecase)
 

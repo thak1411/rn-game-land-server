@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"github.com/thak1411/rn-game-land-server/memorydb"
 	"github.com/thak1411/rn-game-land-server/model"
 )
 
@@ -217,7 +218,8 @@ type HubUsecase interface {
 }
 
 type HubUC struct {
-	Hub *model.WsHub
+	Hub    *model.WsHub
+	gamedb memorydb.GameDatabase
 }
 
 func (uc *HubUC) GetHub() *model.WsHub {
@@ -256,7 +258,7 @@ func (uc *HubUC) RunHub() {
 	}
 }
 
-func NewHub() HubUsecase {
+func NewHub(memdb memorydb.GameDatabase) HubUsecase {
 	hub := &model.WsHub{
 		Clients:      make(map[int]*model.WsClient),
 		Register:     make(chan *model.WsClient),
@@ -265,5 +267,5 @@ func NewHub() HubUsecase {
 		Narrowcast:   make(chan *model.NarrowcastHandler),
 		BroadcastLog: [][]byte{},
 	}
-	return &HubUC{hub}
+	return &HubUC{hub, memdb}
 }

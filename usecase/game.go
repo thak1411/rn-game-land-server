@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"github.com/thak1411/rn-game-land-server/database"
+	"github.com/thak1411/rn-game-land-server/memorydb"
 	"github.com/thak1411/rn-game-land-server/model"
 )
 
@@ -12,7 +12,7 @@ type GameUsecase interface {
 }
 
 type GameUC struct {
-	db database.GameDatabase
+	db memorydb.GameDatabase
 }
 
 func (uc *GameUC) GetGameList() ([]model.Game, error) {
@@ -46,6 +46,6 @@ func (uc *GameUC) GetRoom(userId, roomId int) (*model.Room, error) {
 	return nil, nil
 }
 
-func NewGame(db database.GameDatabase) GameUsecase {
+func NewGame(db memorydb.GameDatabase) GameUsecase {
 	return &GameUC{db}
 }

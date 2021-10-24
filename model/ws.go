@@ -31,8 +31,8 @@ type WsUser struct {
 }
 
 type NarrowcastHandler struct {
-	Response []byte
 	Targets  []int
+	Response []byte
 }
 
 const (

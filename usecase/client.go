@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/thak1411/rn-game-land-server/config"
 	"github.com/thak1411/rn-game-land-server/database"
+	"github.com/thak1411/rn-game-land-server/memorydb"
 	"github.com/thak1411/rn-game-land-server/model"
 	"github.com/thak1411/rn-game-land-server/util"
 )
@@ -278,7 +279,7 @@ type ClientUsecase interface {
 }
 
 type ClientUC struct {
-	db     database.GameDatabase
+	gamedb memorydb.GameDatabase
 	userdb database.UserDatabase
 }
 
@@ -341,13 +342,13 @@ func SendInvite(uc *ClientUC, client *model.WsClient, message *InviteMessage) {
 	msg := &message.Message
 	res := &response.Message
 
-	response.Code = 200
+	response.Code = 203
 	res.From = client.Id
 	res.RoomId = msg.RoomId
 	res.FromName = client.Name
 	res.TargetId = msg.TargetId
 
-	room, err := uc.db.GetRoom(res.RoomId)
+	room, err := uc.gamedb.GetRoom(res.RoomId)
 	if err != nil {
 		log.Printf("error: %v", err)
 		client.Send <- internalError
@@ -367,7 +368,7 @@ func SendInvite(uc *ClientUC, client *model.WsClient, message *InviteMessage) {
 		return
 	}
 
-	uc.db.AppendRoomPlayer(res.RoomId, res.TargetId, targetName)
+	uc.gamedb.AppendRoomPlayer(res.RoomId, res.TargetId, targetName)
 	res.From = client.Id
 	res.TargetName = targetName
 
@@ -390,10 +391,19 @@ func SendInvite(uc *ClientUC, client *model.WsClient, message *InviteMessage) {
 		Targets:  targetsId,
 	}
 	client.Hub.Narrowcast <- narrowHandler
+
+	response.Code = 200
+	narrowMsg2, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
 	narrowHandler2 := &model.NarrowcastHandler{
-		Response: narrowMsg,
+		Response: narrowMsg2,
 		Targets:  []int{msg.TargetId},
 	}
+	uc.gamedb.AppendInviteMessage(msg.TargetId, narrowMsg2)
 	client.Hub.Narrowcast <- narrowHandler2
 	// TODO: limit room size //
 }
@@ -421,7 +431,7 @@ func SendJoin(uc *ClientUC, client *model.WsClient, message *JoinMessage) {
 
 	response.Code = 201
 
-	join, err := uc.db.SetUserOnline(msg.RoomId, client.Id)
+	join, err := uc.gamedb.SetUserOnline(msg.RoomId, client.Id)
 	if err != nil {
 		log.Printf("error: %v", err)
 		client.Send <- internalError
@@ -430,7 +440,7 @@ func SendJoin(uc *ClientUC, client *model.WsClient, message *JoinMessage) {
 	if join {
 		client.RoomId = msg.RoomId
 
-		room, err := uc.db.GetRoom(msg.RoomId)
+		room, err := uc.gamedb.GetRoom(msg.RoomId)
 		if err != nil {
 			log.Printf("error: %v", err)
 			client.Send <- internalError
@@ -457,7 +467,10 @@ func SendJoin(uc *ClientUC, client *model.WsClient, message *JoinMessage) {
 			Response: narrowMsg,
 			Targets:  targetsId,
 		}
-
+		_, err = uc.gamedb.DeleteInviteMessage(client.Id, msg.RoomId)
+		if err != nil {
+			log.Printf("error: %v", err)
+		}
 		client.Hub.Narrowcast <- narrowHandler
 	} else {
 		log.Printf("join error")
@@ -485,7 +498,7 @@ func SendLeave(uc *ClientUC, client *model.WsClient) {
 	response.Code = 202
 	res := &response.Message
 
-	leave, room, err := uc.db.SetUserOffline(client.Id)
+	leave, room, err := uc.gamedb.SetUserOffline(client.Id)
 	if err != nil {
 		log.Printf("error: %v", err)
 		client.Send <- internalError
@@ -585,6 +598,18 @@ func (uc *ClientUC) ClientWriter(client *model.WsClient) {
 		ticker.Stop()
 		client.Conn.Close()
 	}()
+
+	// Send Saved Invite Message in Connection //
+	inviteMsg, err := uc.gamedb.GetInviteMessage(client.Id)
+	if err != nil {
+		log.Printf("saved invite message error: %v", err)
+		client.Send <- internalError
+	} else {
+		for _, v := range inviteMsg {
+			client.Send <- v
+		}
+	}
+
 	for {
 		select {
 		case message, ok := <-client.Send:
@@ -618,6 +643,6 @@ func (uc *ClientUC) ClientWriter(client *model.WsClient) {
 	}
 }
 
-func NewClient(db database.GameDatabase, userdb database.UserDatabase) ClientUsecase {
-	return &ClientUC{db, userdb}
+func NewClient(gamedb memorydb.GameDatabase, userdb database.UserDatabase) ClientUsecase {
+	return &ClientUC{gamedb, userdb}
 }
