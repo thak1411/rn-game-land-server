@@ -330,7 +330,7 @@ type InviteResponse struct {
 	Message struct {
 		From       int    `json:"from"`
 		RoomId     int    `json:"roomId"`
-		FromName   string `json:"fronName"`
+		FromName   string `json:"fromName"`
 		TargetId   int    `json:"targetId"`
 		TargetName string `json:"targetName"`
 	} `json:"message"`
