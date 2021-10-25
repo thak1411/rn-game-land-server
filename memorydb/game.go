@@ -2,6 +2,7 @@ package memorydb
 
 import (
 	"errors"
+	"math/rand"
 
 	"github.com/thak1411/rn-game-land-server/model"
 	"github.com/thak1411/rnjson"
@@ -19,6 +20,9 @@ type GameDatabase interface {
 	GetInviteMessage(int) ([][]byte, error)
 	AppendInviteMessage(int, []byte) (bool, error)
 	DeleteInviteMessage(int, int) (int, error)
+	SetGameStart(int) (bool, error)
+	SetGameEnd(int) (bool, error)
+	ShufflePlayer(int) error
 }
 
 type GameDB struct {
@@ -44,6 +48,7 @@ func (db *GameDB) CreateRoom(owner, gameId int, name, gameName, option, ownerNam
 		Id:       db.NextRoomId,
 		Name:     name,
 		Owner:    owner,
+		Start:    false,
 		GameId:   gameId,
 		Option:   option,
 		GameName: gameName,
@@ -166,6 +171,38 @@ func (db *GameDB) DeleteInviteMessage(userId, roomId int) (int, error) {
 	}
 	db.InviteMessage[userId] = newMsg
 	return deleteCount, nil
+}
+
+func (db *GameDB) SetGameStart(roomId int) (bool, error) {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return false, err
+	}
+	res := !room.Start
+	room.Start = true
+	db.RoomList[roomId] = room
+	return res, nil
+}
+
+func (db *GameDB) SetGameEnd(roomId int) (bool, error) {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return false, err
+	}
+	res := !room.Start
+	room.Start = false
+	db.RoomList[roomId] = room
+	return res, nil
+}
+
+func (db *GameDB) ShufflePlayer(roomId int) error {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return err
+	}
+	rand.Shuffle(len(room.Player), func(i, j int) { room.Player[i], room.Player[j] = room.Player[j], room.Player[i] })
+	db.RoomList[roomId] = room
+	return nil
 }
 
 var gameDB GameDatabase = nil

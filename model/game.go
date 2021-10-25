@@ -17,6 +17,7 @@ type Game struct {
 type Room struct {
 	Id       int       `json:"id"`
 	Name     string    `json:"name"`
+	Start    bool      `json:"start"`
 	Owner    int       `json:"owner"`
 	GameId   int       `json:"gameId"`
 	Option   string    `json:"option"`

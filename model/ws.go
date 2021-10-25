@@ -47,4 +47,5 @@ const (
 	REQ_INVITE    = 50
 	REQ_JOIN      = 51
 	REQ_REJECT    = 52
+	REQ_START     = 20
 )
