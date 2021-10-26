@@ -341,7 +341,6 @@ func SendRejectInvite(uc *ClientUC, client *model.WsClient, message *RejectInvit
 			}
 		}
 	}
-	targetsId = append(targetsId, client.Id)
 
 	res.UserId = client.Id
 	res.RoomId = msg.RoomId
@@ -352,12 +351,25 @@ func SendRejectInvite(uc *ClientUC, client *model.WsClient, message *RejectInvit
 		client.Send <- internalError
 		return
 	}
-
+	// x - TODO: must be spliting reject & remove protocol //
 	narrowHandler := &model.NarrowcastHandler{
 		Response: narrowMsg,
 		Targets:  targetsId,
 	}
 	client.Hub.Narrowcast <- narrowHandler
+
+	response.Code = 205
+	narrowMsg2, err := json.Marshal(response)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+	narrowHandler2 := &model.NarrowcastHandler{
+		Response: narrowMsg2,
+		Targets:  []int{client.Id},
+	}
+	client.Hub.Narrowcast <- narrowHandler2
 }
 
 type StartMessage struct {
@@ -434,12 +446,26 @@ func SendStart(uc *ClientUC, client *model.WsClient, message *StartMessage) {
 				client.Send <- internalError
 				return
 			}
-
+			// x - TODO: must be spliting reject & remove protocol //
 			narrowHandler := &model.NarrowcastHandler{
 				Response: narrowMsg,
-				Targets:  append(targetsId, v.Id),
+				// Targets:  append(targetsId, v.Id), // change this //
+				Targets: targetsId, // change this //
 			}
 			client.Hub.Narrowcast <- narrowHandler
+
+			delResponse.Code = 205
+			narrowMsg2, err := json.Marshal(delResponse)
+			if err != nil {
+				log.Printf("error: %v", err)
+				client.Send <- internalError
+				return
+			}
+			narrowHandler2 := &model.NarrowcastHandler{
+				Response: narrowMsg2,
+				Targets:  []int{v.Id},
+			}
+			client.Hub.Narrowcast <- narrowHandler2
 		}
 	}
 
