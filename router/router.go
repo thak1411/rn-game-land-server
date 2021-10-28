@@ -18,7 +18,7 @@ func New() *http.ServeMux {
 	hub := handler.NewHub(hubUsecase)
 	hub.RunHub()
 
-	gameHandler := games.New(gameDatabase)
+	gameHandler := games.New(gameDatabase, hub.GetHub())
 	userDatabase := database.NewUser()
 	clientUsecase := usecase.NewClient(gameDatabase, userDatabase, gameHandler)
 	client := handler.NewClient(clientUsecase)

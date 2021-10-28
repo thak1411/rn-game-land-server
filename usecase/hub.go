@@ -266,6 +266,7 @@ func NewHub(memdb memorydb.GameDatabase) HubUsecase {
 		Broadcast:    make(chan []byte),
 		Narrowcast:   make(chan *model.NarrowcastHandler),
 		BroadcastLog: [][]byte{},
+		GameMessage:  make(map[int]chan []byte),
 	}
 	return &HubUC{hub, memdb}
 }

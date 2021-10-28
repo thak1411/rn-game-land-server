@@ -7,21 +7,22 @@ import (
 )
 
 type GameHandler interface {
-	Run(*model.WsHub, *model.Room)
+	Run(*model.Room)
 }
 
 type Games struct {
 	gamedb memorydb.GameDatabase
+	hub    *model.WsHub
 }
 
-func (h *Games) Run(hub *model.WsHub, room *model.Room) {
+func (h *Games) Run(room *model.Room) {
 	switch room.GameId {
 	case 0: // Yahtzee //
-		go yahtzee.Run(hub, room)
+		go yahtzee.Run(h.gamedb, h.hub, room)
 	case 1: // LuckyNumber //
 	}
 }
 
-func New(gamedb memorydb.GameDatabase) GameHandler {
-	return &Games{gamedb}
+func New(gamedb memorydb.GameDatabase, hub *model.WsHub) GameHandler {
+	return &Games{gamedb, hub}
 }

@@ -501,7 +501,27 @@ func SendStart(uc *ClientUC, client *model.WsClient, message *StartMessage) {
 	}
 	client.Hub.Narrowcast <- narrowHandler
 
-	uc.gameHanlder.Run(client.Hub, room)
+	uc.gameHanlder.Run(room)
+}
+
+type GameMessage struct {
+	Code    int `json:"code"`
+	Message struct {
+		Id     int `json:"id"`
+		RoomId int `json:"roomId"`
+	} `json:"message"`
+}
+
+func SendGameMessage(uc *ClientUC, client *model.WsClient, message *GameMessage, msg []byte) {
+	if client.Id != message.Message.Id {
+		client.Send <- badRequest
+		return
+	}
+	if client.RoomId != message.Message.RoomId || client.RoomId == -1 {
+		client.Send <- badRequest
+		return
+	}
+	client.Hub.GameMessage[message.Message.RoomId] <- msg
 }
 
 func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
@@ -553,6 +573,14 @@ func WsHandler(uc *ClientUC, client *model.WsClient, msg []byte) {
 			return
 		}
 		SendStart(uc, client, message)
+	case model.REQ_GAME_MESSAGE:
+		message := &GameMessage{}
+		if err := util.BindJson(msg, message); err != nil {
+			log.Printf("error: %v", err)
+			client.Send <- badRequest
+			return
+		}
+		SendGameMessage(uc, client, message, msg)
 	}
 }
 

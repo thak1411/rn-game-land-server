@@ -23,6 +23,7 @@ type GameDatabase interface {
 	SetGameStart(int) (bool, error)
 	SetGameEnd(int) (bool, error)
 	ShufflePlayer(int) error
+	SetRoomData(int, interface{}) error
 }
 
 type GameDB struct {
@@ -46,6 +47,7 @@ func (db *GameDB) GetGameName(gameId int) (string, error) {
 func (db *GameDB) CreateRoom(owner, gameId int, name, gameName, option, ownerName string) (*model.Room, error) {
 	room := &model.Room{
 		Id:       db.NextRoomId,
+		Data:     nil,
 		Name:     name,
 		Owner:    owner,
 		Start:    false,
@@ -201,6 +203,16 @@ func (db *GameDB) ShufflePlayer(roomId int) error {
 		return err
 	}
 	rand.Shuffle(len(room.Player), func(i, j int) { room.Player[i], room.Player[j] = room.Player[j], room.Player[i] })
+	db.RoomList[roomId] = room
+	return nil
+}
+
+func (db *GameDB) SetRoomData(roomId int, data interface{}) error {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return err
+	}
+	room.Data = data
 	db.RoomList[roomId] = room
 	return nil
 }

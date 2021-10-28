@@ -21,6 +21,7 @@ type WsHub struct {
 	Broadcast    chan []byte
 	Narrowcast   chan *NarrowcastHandler
 	BroadcastLog [][]byte
+	GameMessage  map[int]chan []byte
 }
 
 type WsUser struct {
@@ -43,9 +44,10 @@ const (
 	RES_BROADCAST = 100
 
 	// message code //
-	REQ_BROADCAST = 90
-	REQ_INVITE    = 50
-	REQ_JOIN      = 51
-	REQ_REJECT    = 52
-	REQ_START     = 20
+	REQ_BROADCAST    = 90
+	REQ_INVITE       = 50
+	REQ_JOIN         = 51
+	REQ_REJECT       = 52
+	REQ_START        = 20
+	REQ_GAME_MESSAGE = 70
 )
