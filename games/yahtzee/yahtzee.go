@@ -3,7 +3,6 @@ package yahtzee
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"math/rand"
 	"sort"
@@ -242,23 +241,31 @@ func SetScore(h *YahtzeeHandler, scoreKey int) bool {
 	// TODO: yahtzee 100 bonus score //
 	if scoreKey >= 1 && scoreKey <= 6 {
 		h.PlayerScore[h.Turn].Value[scoreKey] = scoreTable[scoreKey] * scoreKey
+		h.PlayerScore[h.Turn].Value[7] += scoreTable[scoreKey] * scoreKey
+		h.PlayerScore[h.Turn].Value[0] += scoreTable[scoreKey] * scoreKey
+		if h.PlayerScore[h.Turn].Value[7] >= 0 {
+			h.PlayerScore[h.Turn].Value[0] += 35
+		}
 	} else {
 		switch scoreKey {
 		case 9:
 			if mx >= 3 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = sm
+				h.PlayerScore[h.Turn].Value[0] += sm
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
 		case 10:
 			if mx >= 4 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = sm
+				h.PlayerScore[h.Turn].Value[0] += sm
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
 		case 11:
 			if len(vlist) == 2 && vlist[0] == 2 && vlist[1] == 3 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 25
+				h.PlayerScore[h.Turn].Value[0] += 25
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
@@ -273,6 +280,7 @@ func SetScore(h *YahtzeeHandler, scoreKey int) bool {
 			}
 			if sc1 > 0 || sc2 > 0 || sc3 > 0 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 30
+				h.PlayerScore[h.Turn].Value[0] += 30
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
@@ -285,18 +293,30 @@ func SetScore(h *YahtzeeHandler, scoreKey int) bool {
 			}
 			if sc1 > 0 || sc2 > 0 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 40
+				h.PlayerScore[h.Turn].Value[0] += 40
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
 		case 14:
 			if len(vlist) == 1 {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 50
+				h.PlayerScore[h.Turn].Value[0] += 50
 			} else {
 				h.PlayerScore[h.Turn].Value[scoreKey] = 0
 			}
 		case 15:
 			h.PlayerScore[h.Turn].Value[scoreKey] = sm
+			h.PlayerScore[h.Turn].Value[0] += sm
 		default:
+			return false
+		}
+	}
+	return true
+}
+
+func IsYahtzee(dice []int) bool {
+	for _, v := range dice {
+		if v != dice[0] {
 			return false
 		}
 	}
@@ -325,6 +345,8 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 		h.PlayerScore = append(h.PlayerScore, &YahtzeeScore{
 			Value: make(map[int]int),
 		})
+		h.PlayerScore[i].Value[0] = 0
+		h.PlayerScore[i].Value[7] = -63
 	}
 
 	room.Data = h
@@ -338,6 +360,11 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 		for h.Turn = 0; h.Turn < playerNum; h.Turn++ {
 			h.RerollCount = 0
 			h.FieldDice = RollAllDice()
+
+			if v, ok := h.PlayerScore[h.Turn].Value[15]; ok && v > 0 && IsYahtzee(h.FieldDice) {
+				h.PlayerScore[h.Turn].Value[0] += 100
+			}
+
 			// TODO: Update: (round, turn) db handler //
 			gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
 			SendRerollCount(gamedb, hub, roomId, h.RerollCount)
@@ -353,6 +380,9 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 							log.Printf("error : %v", err)
 							return
 						}
+						if v, ok := h.PlayerScore[h.Turn].Value[15]; ok && v > 0 && IsYahtzee(h.FieldDice) {
+							h.PlayerScore[h.Turn].Value[0] += 100
+						}
 						h.RerollCount++
 						gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
 						SendFieldDice(gamedb, hub, roomId, h.FieldDice)
@@ -362,6 +392,8 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 						SetScore(h, scoreKey)
 						gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
 						SendScore(gamedb, hub, roomId, h.Turn, h.PlayerScore[h.Turn].Value[scoreKey], scoreKey)
+						SendScore(gamedb, hub, roomId, h.Turn, h.PlayerScore[h.Turn].Value[0], 0)
+						SendScore(gamedb, hub, roomId, h.Turn, h.PlayerScore[h.Turn].Value[7], 7)
 						break
 					}
 				} else {
@@ -372,5 +404,5 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 			}
 		}
 	}
-	fmt.Printf("FIN\n")
+	// fmt.Printf("FIN\n")
 }
