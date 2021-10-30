@@ -3,6 +3,7 @@ package yahtzee
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"math/rand"
 	"sort"
@@ -17,9 +18,12 @@ const (
 	gameRound = 13
 
 	// game response code //
-	TypeSendRoomData  = 1
-	TypeSendFieldDice = 2
-	TypeSendScore     = 3
+	TypeSendRoomData    = 1
+	TypeSendFieldDice   = 2
+	TypeSendScore       = 3
+	TypeSendTurn        = 4
+	TypeSendRound       = 5
+	TypeSendRerollCount = 6
 
 	MsgTypeRollDice = 100
 	MsgTypeGetScore = 101
@@ -47,7 +51,7 @@ type YahtzeeResponse struct {
 	} `json:"message"`
 }
 
-func SendMessage(hub *model.WsHub, players []int, msgType int, msg interface{}) {
+func SendMessage(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId, msgType int, msg interface{}) {
 	response := &YahtzeeResponse{}
 	response.Code = 1000
 	response.Message.Type = msgType
@@ -59,6 +63,18 @@ func SendMessage(hub *model.WsHub, players []int, msgType int, msg interface{}) 
 		return
 	}
 
+	players := make([]int, 0)
+	room, err := gamedb.GetRoom(roomId)
+	if err != nil {
+		log.Printf("error : %v", err)
+		return
+	}
+	for _, v := range room.Player {
+		if v.IsOnline {
+			players = append(players, v.Id)
+		}
+	}
+
 	narrowHandler := &model.NarrowcastHandler{
 		Response: narrowMsg,
 		Targets:  players,
@@ -66,26 +82,39 @@ func SendMessage(hub *model.WsHub, players []int, msgType int, msg interface{}) 
 	hub.Narrowcast <- narrowHandler
 }
 
-func SendRoomData(hub *model.WsHub, players []int, data interface{}) {
-	SendMessage(hub, players, TypeSendRoomData, data)
+func SendRoomData(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeSendRoomData, data)
 }
 
-func SendFieldDice(hub *model.WsHub, players []int, data interface{}) {
-	SendMessage(hub, players, TypeSendFieldDice, data)
+func SendFieldDice(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeSendFieldDice, data)
+}
+
+func SendTurn(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeSendTurn, data)
+}
+
+func SendRound(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeSendRound, data)
+}
+
+func SendRerollCount(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeSendRerollCount, data)
 }
 
 type ScoreResponse struct {
+	Turn     int `json:"turn"`
 	Score    int `json:"score"`
-	UserId   int `json:"userId"`
 	ScoreKey int `json:"scoreKey"`
 }
 
-func SendScore(hub *model.WsHub, players []int, score, userId, scoreKey int) {
+func SendScore(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId, turn, score, scoreKey int) {
 	response := &ScoreResponse{}
-	response.ScoreKey = scoreKey
+	response.Turn = turn
 	response.Score = score
+	response.ScoreKey = scoreKey
 
-	SendMessage(hub, players, TypeSendScore, response)
+	SendMessage(gamedb, hub, roomId, TypeSendScore, response)
 }
 
 type ValidFunc func(interface{}) bool
@@ -126,11 +155,11 @@ func GetBehaviorMessage(hub *model.WsHub, roomId, timeout, playerId int, h *Yaht
 		if !ok {
 			return false
 		}
-		if len(msg.Message.Selected) < 1 || playerId != msg.Message.Id {
+		if playerId != msg.Message.Id {
 			return false
 		}
 		if msg.Message.Type == MsgTypeRollDice { // ReRoll Dice //
-			if h.RerollCount >= 2 {
+			if h.RerollCount >= 2 || len(msg.Message.Selected) < 1 {
 				return false
 			}
 			dp := make(map[int]bool)
@@ -300,16 +329,20 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 
 	room.Data = h
 	gamedb.SetRoomData(roomId, h)
-	SendRoomData(hub, players, h)
+	SendRoomData(gamedb, hub, roomId, h)
 
-	turnTerm := 20
+	turnTerm := 1000000
 
 	for h.Round = 0; h.Round < gameRound; h.Round++ {
+		SendRound(gamedb, hub, roomId, h.Round)
 		for h.Turn = 0; h.Turn < playerNum; h.Turn++ {
+			h.RerollCount = 0
 			h.FieldDice = RollAllDice()
 			// TODO: Update: (round, turn) db handler //
 			gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
-			SendFieldDice(hub, players, h.FieldDice)
+			SendRerollCount(gamedb, hub, roomId, h.RerollCount)
+			SendFieldDice(gamedb, hub, roomId, h.FieldDice)
+			SendTurn(gamedb, hub, roomId, h.Turn)
 
 			for {
 				behaviorMsg, status := GetBehaviorMessage(hub, roomId, turnTerm, players[h.Turn], h)
@@ -320,13 +353,15 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 							log.Printf("error : %v", err)
 							return
 						}
+						h.RerollCount++
 						gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
-						SendFieldDice(hub, players, h.FieldDice)
+						SendFieldDice(gamedb, hub, roomId, h.FieldDice)
+						SendRerollCount(gamedb, hub, roomId, h.RerollCount)
 					} else if behaviorMsg.Message.Type == MsgTypeGetScore { // Get Score //
 						scoreKey := behaviorMsg.Message.ScoreKey
 						SetScore(h, scoreKey)
 						gamedb.SetRoomData(roomId, h) // TODO: Update to field dice handler //
-						SendScore(hub, players, h.PlayerScore[h.Turn].Value[scoreKey], behaviorMsg.Message.Id, scoreKey)
+						SendScore(gamedb, hub, roomId, h.Turn, h.PlayerScore[h.Turn].Value[scoreKey], scoreKey)
 						break
 					}
 				} else {
@@ -337,4 +372,5 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 			}
 		}
 	}
+	fmt.Printf("FIN\n")
 }

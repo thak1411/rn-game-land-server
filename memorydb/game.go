@@ -24,6 +24,7 @@ type GameDatabase interface {
 	SetGameEnd(int) (bool, error)
 	ShufflePlayer(int) error
 	SetRoomData(int, interface{}) error
+	GetRoomPlayer(int) ([]*model.Player, error)
 }
 
 type GameDB struct {
@@ -215,6 +216,14 @@ func (db *GameDB) SetRoomData(roomId int, data interface{}) error {
 	room.Data = data
 	db.RoomList[roomId] = room
 	return nil
+}
+
+func (db *GameDB) GetRoomPlayer(roomId int) ([]*model.Player, error) {
+	room, err := db.GetRoom(roomId)
+	if err != nil {
+		return nil, err
+	}
+	return room.Player, nil
 }
 
 var gameDB GameDatabase = nil

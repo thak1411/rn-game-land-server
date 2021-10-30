@@ -495,6 +495,8 @@ func SendStart(uc *ClientUC, client *model.WsClient, message *StartMessage) {
 		return
 	}
 
+	client.Hub.GameMessage[room.Id] = make(chan []byte) // must be open message channel & close it after game end //
+
 	narrowHandler := &model.NarrowcastHandler{
 		Response: narrowMsg,
 		Targets:  targetsId,
