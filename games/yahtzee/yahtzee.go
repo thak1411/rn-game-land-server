@@ -23,6 +23,7 @@ const (
 	TypeSendTurn        = 4
 	TypeSendRound       = 5
 	TypeSendRerollCount = 6
+	TypeGameEnd         = 8
 
 	MsgTypeRollDice = 100
 	MsgTypeGetScore = 101
@@ -99,6 +100,10 @@ func SendRound(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data 
 
 func SendRerollCount(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
 	SendMessage(gamedb, hub, roomId, TypeSendRerollCount, data)
+}
+
+func SendEndGame(gamedb memorydb.GameDatabase, hub *model.WsHub, roomId int, data interface{}) {
+	SendMessage(gamedb, hub, roomId, TypeGameEnd, data)
 }
 
 type ScoreResponse struct {
@@ -323,6 +328,16 @@ func IsYahtzee(dice []int) bool {
 	return true
 }
 
+type YahtzeePlayerResult struct {
+	Rank  int    `json:"rank"`
+	Name  string `json:"name"`
+	Score int    `json:"score"`
+}
+
+type YahtzeeGameResult struct {
+	ResultTable []*YahtzeePlayerResult `json:"resultTable"`
+}
+
 func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 	var _ = room.Option // game option
 	var _ = room.Player // game player
@@ -330,8 +345,10 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 	roomId := room.Id
 	playerNum := len(room.Player)
 	players := make([]int, playerNum)
+	playerName := make([]string, playerNum)
 	for i, v := range room.Player {
 		players[i] = v.Id
+		playerName[i] = v.Name
 	}
 
 	h := &YahtzeeHandler{
@@ -404,5 +421,29 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 			}
 		}
 	}
-	// fmt.Printf("FIN\n")
+	result := &YahtzeeGameResult{
+		ResultTable: nil,
+	}
+	for i, v := range h.PlayerScore {
+		name := playerName[i]
+		result.ResultTable = append(result.ResultTable, &YahtzeePlayerResult{
+			Rank:  0,
+			Name:  name,
+			Score: v.Value[0],
+		})
+	}
+	sort.Slice(result.ResultTable, func(i, j int) bool {
+		return result.ResultTable[i].Score < result.ResultTable[j].Score
+	})
+	prevScore := -2
+	rankId := 0
+	for i, v := range result.ResultTable {
+		if prevScore != v.Score {
+			rankId++
+		}
+		result.ResultTable[i].Rank = rankId
+		prevScore = v.Score
+	}
+	gamedb.SetGameEnd(roomId)
+	SendEndGame(gamedb, hub, roomId, result)
 }
