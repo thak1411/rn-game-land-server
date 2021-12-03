@@ -433,7 +433,7 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 		})
 	}
 	sort.Slice(result.ResultTable, func(i, j int) bool {
-		return result.ResultTable[i].Score < result.ResultTable[j].Score
+		return result.ResultTable[i].Score > result.ResultTable[j].Score
 	})
 	prevScore := -2
 	rankId := 0
