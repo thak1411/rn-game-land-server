@@ -380,7 +380,7 @@ func Run(gamedb memorydb.GameDatabase, hub *model.WsHub, room *model.Room) {
 							log.Printf("error : %v", err)
 							return
 						}
-						if v, ok := h.PlayerScore[h.Turn].Value[15]; ok && v > 0 && IsYahtzee(h.FieldDice) {
+						if v, ok := h.PlayerScore[h.Turn].Value[14]; ok && v > 0 && IsYahtzee(h.FieldDice) {
 							h.PlayerScore[h.Turn].Value[0] += 100
 						}
 						h.RerollCount++
