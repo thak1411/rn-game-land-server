@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/thak1411/rn-game-land-server/config"
@@ -35,6 +36,21 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 			Name:     body.Name,
 			Username: body.Username,
 			Password: body.Password,
+		}
+		nameRegex, _ := regexp.Compile("^[ㄱ-ㅎ|가-힣|ㅏ-ㅣ|a-z|A-Z|0-9|]{2,6}$")
+		usernameRegex, _ := regexp.Compile("^[a-z|A-Z|0-9|]{6,12}$")
+		passwordRegex, _ := regexp.Compile("^[a-z|A-Z|0-9|]{6,12}$")
+		if !nameRegex.MatchString(user.Name) {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if !usernameRegex.MatchString(user.Username) {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if !passwordRegex.MatchString(user.Password) {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
 		}
 		if err := h.uc.CreateUser(user); err != nil {
 			ret := model.RnHttpStatus{

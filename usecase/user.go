@@ -27,14 +27,12 @@ type UserUC struct {
 }
 
 func (uc *UserUC) CreateUser(user model.User) error {
-	// Inject Salt & Hasing Password //
 	user.Salt = util.NewUuid()
 	user.Password = util.Encrypt(user.Password, user.Salt)
 	return uc.db.Create(user)
 }
 
 func (uc *UserUC) UpdateUser(user model.User) error {
-	// Hashing Password //
 	user.Password = util.Encrypt(user.Password, user.Salt)
 	return uc.db.Update(user)
 }
