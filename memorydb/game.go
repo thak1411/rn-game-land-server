@@ -11,7 +11,8 @@ import (
 type GameDatabase interface {
 	GetGameList() ([]model.Game, error)
 	GetGameName(int) (string, error)
-	CreateRoom(int, int, string, string, string, string) (*model.Room, error)
+	GetGameInfo(int) (*model.Game, error)
+	CreateRoom(int, int, string, string, string, string, int, int) (*model.Room, error)
 	GetRoom(int) (*model.Room, error)
 	SetUserOnline(int, int) (bool, error)
 	SetUserOffline(int) (bool, *model.Room, error)
@@ -45,16 +46,25 @@ func (db *GameDB) GetGameName(gameId int) (string, error) {
 	return db.GameList[gameId].Name, nil
 }
 
-func (db *GameDB) CreateRoom(owner, gameId int, name, gameName, option, ownerName string) (*model.Room, error) {
+func (db *GameDB) GetGameInfo(gameId int) (*model.Game, error) {
+	if gameId < 0 || gameId >= len(db.GameList) {
+		return nil, errors.New("invalid game id")
+	}
+	return &db.GameList[gameId], nil
+}
+
+func (db *GameDB) CreateRoom(owner, gameId int, name, gameName, option, ownerName string, minPlayer, MaxPlayer int) (*model.Room, error) {
 	room := &model.Room{
-		Id:       db.NextRoomId,
-		Data:     nil,
-		Name:     name,
-		Owner:    owner,
-		Start:    false,
-		GameId:   gameId,
-		Option:   option,
-		GameName: gameName,
+		Id:        db.NextRoomId,
+		Data:      nil,
+		Name:      name,
+		Owner:     owner,
+		Start:     false,
+		GameId:    gameId,
+		Option:    option,
+		GameName:  gameName,
+		MinPlayer: minPlayer,
+		MaxPlayer: MaxPlayer,
 		Player: []*model.Player{
 			{
 				Id:       owner,
@@ -235,7 +245,14 @@ func NewGame() GameDatabase {
 				{
 					Id:        0, // Auto Increase //
 					Name:      "Yahtzee",
+					MinPlayer: 1,
+					MaxPlayer: 9,
+				},
+				{
+					Id:        1, // Auto Increase //
+					Name:      "DeathBingo",
 					MinPlayer: 2,
+					MaxPlayer: 9,
 				},
 			},
 			RoomList:      make(map[int]*model.Room),

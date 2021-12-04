@@ -20,14 +20,15 @@ func (uc *GameUC) GetGameList() ([]model.Game, error) {
 }
 
 func (uc *GameUC) CreateRoom(owner, gameId int, name, option, ownerName string) (*model.Room, error) {
-	gameName, err := uc.db.GetGameName(gameId)
+	// gameName, err := uc.db.GetGameName(gameId)
+	gameInfo, err := uc.db.GetGameInfo(gameId)
 	if err != nil {
 		return nil, err
 	}
-	if gameName == "" {
+	if gameInfo.Name == "" {
 		return nil, nil
 	}
-	return uc.db.CreateRoom(owner, gameId, name, gameName, option, ownerName)
+	return uc.db.CreateRoom(owner, gameId, name, gameInfo.Name, option, ownerName, gameInfo.MinPlayer, gameInfo.MaxPlayer)
 }
 
 func (uc *GameUC) GetRoom(userId, roomId int) (*model.Room, error) {

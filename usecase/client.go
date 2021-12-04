@@ -413,6 +413,18 @@ func SendStart(uc *ClientUC, client *model.WsClient, message *StartMessage) {
 			targetsId = append(targetsId, v.Id)
 		}
 	}
+
+	gameInfo, err := uc.gamedb.GetGameInfo(room.GameId)
+	if err != nil {
+		log.Printf("error: %v", err)
+		client.Send <- internalError
+		return
+	}
+	if len(targetsId) < gameInfo.MinPlayer || len(targetsId) > gameInfo.MaxPlayer {
+		client.Send <- unauthorizedError
+		return
+	}
+
 	// delete offline player //
 	for _, v := range room.Player {
 		if v.IsOnline {
