@@ -39,7 +39,10 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		if err := h.uc.CreateUser(user); err != nil {
 			ret := model.RnHttpStatus{
 				Status:  909,
-				Message: "Duplicated Username",
+				Message: err.Error(),
+			}
+			if err.Error() != "duplicated username" { // TODO: Remove err.Error() & check name, username before create user
+				ret.Status = 908
 			}
 			if err := json.NewEncoder(w).Encode(ret); err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
