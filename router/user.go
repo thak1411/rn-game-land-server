@@ -9,13 +9,13 @@ import (
 	"github.com/thak1411/rn-game-land-server/usecase"
 )
 
-func NewUser() *http.ServeMux {
+func NewUser(userDatabase database.UserDatabase) *http.ServeMux {
 	authAdmin := middleware.AuthAdmin
 	tokenDecode := middleware.TokenDecode
 
 	mux := http.NewServeMux()
 
-	userDatabase := database.NewUser()
+	// userDatabase := database.NewUser()
 	userUsecase := usecase.NewUser(userDatabase)
 	userHandler := handler.NewUser(userUsecase)
 

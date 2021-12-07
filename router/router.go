@@ -20,6 +20,7 @@ func New() *http.ServeMux {
 
 	gameHandler := games.New(gameDatabase, hub.GetHub())
 	userDatabase := database.NewUser()
+
 	clientUsecase := usecase.NewClient(gameDatabase, userDatabase, gameHandler)
 	client := handler.NewClient(clientUsecase)
 
@@ -28,8 +29,8 @@ func New() *http.ServeMux {
 		client.WsServe(hub.GetHub(), w, r)
 	}))
 
-	userRouter := NewUser()
-	gameRouter := NewGame()
+	userRouter := NewUser(userDatabase)
+	gameRouter := NewGame(gameDatabase)
 
 	mux.Handle("/api/user/", http.StripPrefix("/api/user", userRouter))
 	mux.Handle("/api/game/", http.StripPrefix("/api/game", gameRouter))
